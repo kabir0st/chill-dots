@@ -1,0 +1,179 @@
+@import "mocha.css";
+
+* {
+    border: none;
+    border-radius: 0;
+    font-family: "JetBrainsMono Nerd Font", "JetBrains Mono", "Noto Sans";
+    font-weight: bold;
+    font-size: 14px;
+    min-height: 0;
+}
+
+window#waybar {
+    background: rgba(21, 18, 27, 0);
+    color: #cdd6f4;
+}
+
+tooltip {
+    background: #1e1e2e;
+    border-radius: 10px;
+    border-width: 2px;
+    border-style: solid;
+    border-color: #11111b;
+}
+
+/* Workspaces */
+#workspaces {
+    background: #1e1e2e;
+    border-radius: 10px;
+    margin-left: 10px;
+    padding-right: 0px;
+    padding-left: 5px;
+    opacity: 0.8;
+    margin-top: 10px;
+    border: 1px solid #181825;
+}
+
+#workspaces button {
+    padding: 5px;
+    color: #636777;
+    margin-right: 5px;
+}
+
+#workspaces button.active {
+    color: #cdd6f4;
+    background-color: #45475a;
+    border-radius: 10px;
+}
+
+#workspaces button.focused {
+    color: #a6adc8;
+    background: #eba0ac;
+    border-radius: 10px;
+}
+
+#workspaces button.urgent {
+    color: #11111b;
+    background: #a6e3a1;
+    border-radius: 10px;
+}
+
+#workspaces button:hover {
+    background: #313244;
+    color: #cdd6f4;
+    border-radius: 5px;
+}
+
+/* Clock + Calendar group (now on the left) */
+#clock {
+    background: #1e1e2e;
+    opacity: 0.8;
+    color: #fab387;
+    border-radius: 10px 0px 0px 10px;
+    margin-top: 10px;
+    margin-left: 10px;
+    padding: 0px 15px;
+    border: 1px solid #181825;
+    border-right: 0px;
+}
+
+#clock.calendar {
+    background: #1e1e2e;
+    opacity: 0.8;
+    color: #94e2d5;
+    border-radius: 0px 10px 10px 0px;
+    margin-top: 10px;
+    padding: 0px 15px;
+    border: 1px solid #181825;
+    border-left: 0px;
+}
+
+/* Active window - centered with fixed width */
+#window {
+    background: #1e1e2e;
+    opacity: 0.8;
+    border-radius: 10px;
+    margin-top: 10px;
+    padding: 0px 15px;
+    border: 1px solid #181825;
+    color: #bac2de;
+    min-width: 300px;
+}
+
+/* Right side modules - shared base */
+#custom-weather,
+#network,
+#bluetooth,
+#battery,
+#backlight,
+#pulseaudio,
+#tray {
+    background: #1e1e2e;
+    opacity: 0.8;
+    padding: 0px 10px;
+    margin-top: 10px;
+    border: 1px solid #181825;
+}
+
+/* Weather - standalone pill */
+#custom-weather {
+    border-radius: 10px;
+    margin-right: 10px;
+    color: #89dceb;
+}
+
+/* Network + Bluetooth group */
+#network {
+    color: #f9e2af;
+    border-radius: 10px 0px 0px 10px;
+    border-right: 0px;
+}
+
+#bluetooth {
+    color: #89b4fa;
+    border-radius: 0px 10px 10px 0px;
+    border-left: 0px;
+    margin-right: 10px;
+}
+
+/* Backlight + Battery group */
+#backlight {
+    color: #f9e2af;
+    border-radius: 10px 0px 0px 10px;
+    border-right: 0px;
+}
+
+#battery {
+    color: #a6e3a1;
+    border-radius: 0px 10px 10px 0px;
+    border-left: 0px;
+    margin-right: 10px;
+}
+
+#battery.warning {
+    color: #fab387;
+}
+
+#battery.critical {
+    color: #f38ba8;
+}
+
+/* Pulseaudio + Mic group */
+#pulseaudio {
+    color: #89b4fa;
+    border-radius: 10px 0px 0px 10px;
+    border-right: 0px;
+}
+
+#pulseaudio.microphone {
+    color: #cba6f7;
+    border-left: 0px;
+    border-radius: 0px 10px 10px 0px;
+    margin-right: 10px;
+}
+
+/* Tray */
+#tray {
+    border-radius: 10px;
+    margin-right: 10px;
+}

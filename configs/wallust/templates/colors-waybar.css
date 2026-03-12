@@ -1,0 +1,19 @@
+/* Wallust-generated waybar colors */
+@define-color wallust_background alpha({{background}}, 0.85);
+@define-color wallust_foreground {{foreground}};
+@define-color wallust_color0 {{color0}};
+@define-color wallust_color1 {{color1}};
+@define-color wallust_color2 {{color2}};
+@define-color wallust_color3 {{color3}};
+@define-color wallust_color4 {{color4}};
+@define-color wallust_color5 {{color5}};
+@define-color wallust_color6 {{color6}};
+@define-color wallust_color7 {{color7}};
+@define-color wallust_color8 {{color8}};
+@define-color wallust_color9 {{color9}};
+@define-color wallust_color10 {{color10}};
+@define-color wallust_color11 {{color11}};
+@define-color wallust_color12 {{color12}};
+@define-color wallust_color13 {{color13}};
+@define-color wallust_color14 {{color14}};
+@define-color wallust_color15 {{color15}};

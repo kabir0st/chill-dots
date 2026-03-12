@@ -1,0 +1,9 @@
+[Unit]
+Description=Rotate wallpaper every 20 minutes
+
+[Timer]
+OnCalendar=*:0/20
+Persistent=true
+
+[Install]
+WantedBy=timers.target

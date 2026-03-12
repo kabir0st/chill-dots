@@ -1,0 +1,17 @@
+# Wallust-generated starship palette
+[palettes.wallust]
+surface = "{{color8}}"
+rosewater = "{{color9}}"
+flamingo = "{{color1}}"
+pink = "{{color13}}"
+mauve = "{{color5}}"
+red = "{{color1}}"
+maroon = "{{color9}}"
+peach = "{{color3}}"
+yellow = "{{color11}}"
+green = "{{color2}}"
+teal = "{{color6}}"
+sky = "{{color14}}"
+sapphire = "{{color4}}"
+blue = "{{color12}}"
+lavender = "{{color7}}"

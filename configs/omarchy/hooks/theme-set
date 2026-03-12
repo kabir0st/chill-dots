@@ -1,0 +1,7 @@
+#!/bin/bash
+# Generate vibrant kitty colors from the new theme's wallpaper
+# Runs after omarchy-theme-set / omarchy-theme-bg-next
+
+# Small delay to let the wallpaper symlink update
+sleep 0.5
+vibrant-kitty-colors &

@@ -1,0 +1,22 @@
+# Wallust configuration for auto-theming
+backend = "kmeans"
+color_space = "labmixed"
+palette = "dark16"
+check_contrast = true
+threshold = 11
+
+[templates]
+# Hyprland colors
+hyprland = { template = "colors-hyprland.conf", target = "~/.config/hypr/wallust/colors-hyprland.conf" }
+# Waybar colors
+waybar = { template = "colors-waybar.css", target = "~/.config/waybar/wallust/colors-waybar.css" }
+# Kitty terminal colors
+kitty = { template = "colors-kitty.conf", target = "~/.config/kitty/wallust-colors.conf" }
+# Mako notifications
+mako = { template = "colors-mako.conf", target = "~/.config/mako/wallust-colors.conf" }
+# Walker launcher
+walker = { template = "colors-walker.css", target = "~/.config/walker/themes/wallust.css" }
+# Starship prompt
+starship = { template = "colors-starship.toml", target = "~/.cache/wallust/colors-starship.toml" }
+# Shell color variables
+shell = { template = "colors.sh", target = "~/.cache/wallust/colors.sh" }

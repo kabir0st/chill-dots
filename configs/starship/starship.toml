@@ -1,0 +1,197 @@
+add_newline = true
+command_timeout = 500
+
+palette = "wallust"
+
+format = """
+[╭─](bold fg:surface) $os$directory$git_branch$git_status$python$docker_context$nodejs$rust$golang$cmd_duration
+[╰─](bold fg:surface)$character"""
+
+right_format = "$time"
+
+[palettes.rich]
+surface = "#585b70"
+rosewater = "#f5e0dc"
+flamingo = "#f2cdcd"
+pink = "#f5c2e7"
+mauve = "#cba6f7"
+red = "#f38ba8"
+maroon = "#eba0ac"
+peach = "#fab387"
+yellow = "#f9e2af"
+green = "#a6e3a1"
+teal = "#94e2d5"
+sky = "#89dceb"
+sapphire = "#74c7ec"
+blue = "#89b4fa"
+lavender = "#b4befe"
+
+[os]
+disabled = false
+style = "fg:lavender"
+
+[os.symbols]
+Arch = "󰣇 "
+Ubuntu = " "
+Debian = " "
+Fedora = " "
+Linux = " "
+Macos = " "
+Windows = "󰍲 "
+
+[character]
+success_symbol = "[❯](bold fg:green)"
+error_symbol = "[❯](bold fg:red)"
+
+[directory]
+truncation_length = 3
+truncation_symbol = ".../"
+style = "bold fg:sapphire"
+repo_root_style = "bold fg:mauve"
+repo_root_format = "[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) "
+read_only = " 󰌾"
+read_only_style = "fg:red"
+
+[git_branch]
+format = "🌿[$branch]($style) "
+style = "bold fg:green"
+
+[git_status]
+format = '([$all_status$ahead_behind]($style))'
+style = "bold fg:yellow"
+ahead = "[⇡](bold fg:green)"
+behind = "[⇣](bold fg:red)"
+diverged = "[⇕](bold fg:peach)"
+conflicted = "[](bold fg:red)"
+untracked = "[](bold fg:sky)"
+modified = "[](bold fg:peach)"
+staged = "[](bold fg:green)"
+deleted = "[](bold fg:red)"
+stashed = "[](bold fg:teal)"
+renamed = "[»](bold fg:lavender)"
+
+[python]
+format = "🐍[$version]($style) "
+style = "bold fg:green"
+detect_extensions = ["py"]
+detect_files = ["requirements.txt", ".python-version", "Pipfile", "pyproject.toml", "setup.py"]
+
+[docker_context]
+format = "🐳[$context]($style) "
+style = "bold fg:sky"
+
+[nodejs]
+format = "🟢[$version]($style) "
+style = "bold fg:green"
+
+[rust]
+format = "🦀[$version]($style) "
+style = "bold fg:peach"
+
+[golang]
+format = "🐹[$version]($style) "
+style = "bold fg:teal"
+
+[cmd_duration]
+min_time = 2_000
+format = "took [$duration]($style) "
+style = "bold fg:yellow"
+
+[time]
+disabled = false
+format = "[$time]($style) "
+style = "fg:surface"
+time_format = "%H:%M"
+
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+
+# Wallust-generated starship palette
+[palettes.wallust]
+surface = "#838A8A"
+rosewater = "#4A514F"
+flamingo = "#464B49"
+pink = "#778684"
+mauve = "#6D7876"
+red = "#464B49"
+maroon = "#4A514F"
+peach = "#5B4F48"
+yellow = "#66574E"
+green = "#5B4F49"
+teal = "#768382"
+sky = "#899D9B"
+sapphire = "#58605E"
+blue = "#626D6A"
+lavender = "#BCC6C5"

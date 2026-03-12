@@ -1,0 +1,28 @@
+/* Wallust-generated walker theme */
+#window {
+    background-color: alpha({{background}}, 0.85);
+    border: 2px solid {{color4}};
+    border-radius: 12px;
+}
+
+#search entry {
+    color: {{foreground}};
+    background-color: alpha({{color0}}, 0.6);
+    border: 1px solid {{color8}};
+    border-radius: 8px;
+    caret-color: {{color4}};
+}
+
+#list row {
+    color: {{foreground}};
+    border-radius: 6px;
+}
+
+#list row:selected {
+    background-color: alpha({{color4}}, 0.3);
+    color: {{foreground}};
+}
+
+#list row:hover {
+    background-color: alpha({{color12}}, 0.15);
+}

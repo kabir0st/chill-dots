@@ -1,0 +1,9 @@
+[Unit]
+Description=Random wallpaper rotation with color theming
+
+[Service]
+Type=oneshot
+ExecStart=%h/.config/hypr/scripts/wallpaper.sh random
+Environment=DISPLAY=:0
+Environment=WAYLAND_DISPLAY=wayland-1
+Environment=XDG_RUNTIME_DIR=/run/user/1000
