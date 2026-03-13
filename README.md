@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  chill_config
+  Chill Dots
   <br>
 </h1>
 
