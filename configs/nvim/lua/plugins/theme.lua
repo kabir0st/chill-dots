@@ -1,0 +1,1 @@
+/home/lurayy/.config/omarchy/current/theme/neovim.lua

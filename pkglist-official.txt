@@ -13,7 +13,6 @@ bolt
 brightnessctl
 btop
 btrfs-progs
-calf
 chromium
 clang
 claude-code
@@ -28,7 +27,6 @@ docker-buildx
 docker-compose
 dotnet-runtime-9.0
 dust
-easyeffects
 efibootmgr
 evince
 exfatprogs
@@ -87,7 +85,6 @@ linux
 linux-firmware
 llvm
 localsend
-lsp-plugins
 luarocks
 makima-bin
 mako

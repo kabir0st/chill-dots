@@ -58,8 +58,8 @@ set_wallpaper() {
             if [[ -f "$starship_conf" ]]; then
                 # Update palette reference
                 sed -i 's/^palette = .*/palette = "wallust"/' "$starship_conf"
-                # Remove existing wallust palette if present
-                sed -i '/^\[palettes\.wallust\]/,/^$/d' "$starship_conf"
+                # Remove existing wallust palette block (comment + toml) from file
+                sed -i '/^# Wallust-generated starship palette/,$d' "$starship_conf"
                 # Append fresh palette
                 echo "" >> "$starship_conf"
                 cat "$CACHE_DIR/colors-starship.toml" >> "$starship_conf"
@@ -111,7 +111,7 @@ case "${1:-}" in
                     local starship_conf="$HOME/.config/starship.toml"
                     if [[ -f "$starship_conf" ]]; then
                         sed -i 's/^palette = .*/palette = "wallust"/' "$starship_conf"
-                        sed -i '/^\[palettes\.wallust\]/,/^$/d' "$starship_conf"
+                        sed -i '/^# Wallust-generated starship palette/,$d' "$starship_conf"
                         echo "" >> "$starship_conf"
                         cat "$CACHE_DIR/colors-starship.toml" >> "$starship_conf"
                     fi

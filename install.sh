@@ -77,7 +77,7 @@ ok "Packages installed"
 info "Step 2/7: Backing up existing configs to $BACKUP_DIR..."
 mkdir -p "$BACKUP_DIR"
 
-for dir in hypr waybar kitty ghostty mako walker swayosd waypaper wallust; do
+for dir in hypr waybar kitty ghostty mako walker swayosd waypaper wallust fastfetch btop tmux nvim; do
     if [[ -d "$HOME/.config/$dir" ]]; then
         cp -r "$HOME/.config/$dir" "$BACKUP_DIR/" 2>/dev/null || true
     fi
@@ -112,6 +112,8 @@ cp "$SCRIPT_DIR/configs/hypr/input.conf" "$HOME/.config/hypr/"
 cp "$SCRIPT_DIR/configs/hypr/autostart.conf" "$HOME/.config/hypr/"
 cp "$SCRIPT_DIR/configs/hypr/hypridle.conf" "$HOME/.config/hypr/"
 cp "$SCRIPT_DIR/configs/hypr/hyprlock.conf" "$HOME/.config/hypr/"
+cp "$SCRIPT_DIR/configs/hypr/hyprsunset.conf" "$HOME/.config/hypr/"
+cp "$SCRIPT_DIR/configs/hypr/xdph.conf" "$HOME/.config/hypr/"
 cp "$SCRIPT_DIR/configs/hypr/scripts/wallpaper.sh" "$HOME/.config/hypr/scripts/"
 chmod +x "$HOME/.config/hypr/scripts/wallpaper.sh"
 
@@ -166,6 +168,29 @@ cp "$SCRIPT_DIR/configs/omarchy/hooks/theme-set" "$HOME/.config/omarchy/hooks/"
 cp "$SCRIPT_DIR/configs/omarchy/extensions/menu.sh" "$HOME/.config/omarchy/extensions/"
 chmod +x "$HOME/.config/omarchy/hooks/theme-set"
 
+# Fastfetch
+mkdir -p "$HOME/.config/fastfetch"
+cp "$SCRIPT_DIR/configs/fastfetch/config.jsonc" "$HOME/.config/fastfetch/"
+cp "$SCRIPT_DIR/configs/fastfetch/logo.txt" "$HOME/.config/fastfetch/"
+
+# Btop
+mkdir -p "$HOME/.config/btop"
+cp "$SCRIPT_DIR/configs/btop/btop.conf" "$HOME/.config/btop/"
+
+# Tmux
+mkdir -p "$HOME/.config/tmux"
+cp "$SCRIPT_DIR/configs/tmux/tmux.conf" "$HOME/.config/tmux/"
+
+# Neovim (LazyVim)
+mkdir -p "$HOME/.config/nvim/lua/config" "$HOME/.config/nvim/lua/plugins" "$HOME/.config/nvim/plugin/after"
+cp "$SCRIPT_DIR/configs/nvim/init.lua" "$HOME/.config/nvim/"
+cp "$SCRIPT_DIR/configs/nvim/lazy-lock.json" "$HOME/.config/nvim/"
+cp "$SCRIPT_DIR/configs/nvim/lazyvim.json" "$HOME/.config/nvim/"
+cp "$SCRIPT_DIR/configs/nvim/stylua.toml" "$HOME/.config/nvim/"
+cp "$SCRIPT_DIR/configs/nvim/lua/config/"* "$HOME/.config/nvim/lua/config/"
+cp "$SCRIPT_DIR/configs/nvim/lua/plugins/"* "$HOME/.config/nvim/lua/plugins/"
+cp "$SCRIPT_DIR/configs/nvim/plugin/after/"* "$HOME/.config/nvim/plugin/after/"
+
 ok "Config files deployed"
 
 # ============================================================================
@@ -217,6 +242,10 @@ mkdir -p "$HOME/.config/systemd/user"
 cp "$SCRIPT_DIR/systemd/wallpaper-rotate.timer" "$HOME/.config/systemd/user/"
 cp "$SCRIPT_DIR/systemd/wallpaper-rotate.service" "$HOME/.config/systemd/user/"
 cp "$SCRIPT_DIR/systemd/elephant.service" "$HOME/.config/systemd/user/"
+
+# Walker auto-restart drop-in
+mkdir -p "$HOME/.config/systemd/user/app-walker@autostart.service.d"
+cp "$SCRIPT_DIR/systemd/app-walker-autostart.service.d/restart.conf" "$HOME/.config/systemd/user/app-walker@autostart.service.d/"
 
 systemctl --user daemon-reload
 
@@ -283,12 +312,16 @@ echo "    - All packages (official + AUR)"
 echo "    - Hyprland + custom animations, blur, borders"
 echo "    - Waybar (Catppuccin Mocha theme + weather)"
 echo "    - Wallust auto-theming (colors from wallpaper)"
-echo "    - Kitty terminal config"
+echo "    - Kitty + Ghostty terminal configs"
+echo "    - Neovim (LazyVim + custom plugins)"
+echo "    - Tmux with custom keybindings"
+echo "    - Fastfetch with custom logo"
+echo "    - Btop system monitor"
 echo "    - Wallpaper rotation (every 20 min)"
-echo "    - 106 wallpapers"
 echo "    - Starship prompt + Oh My Zsh"
 echo "    - CopyQ clipboard manager"
 echo "    - SwayOSD + Mako notifications"
+echo "    - Walker launcher with auto-restart"
 echo "    - Theme: $THEME_NAME"
 echo ""
 echo "  Next steps:"

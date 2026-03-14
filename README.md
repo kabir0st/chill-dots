@@ -1,6 +1,10 @@
 <h1 align="center">
   <br>
+<<<<<<< HEAD
   Chill Dots
+=======
+  chill-dots
+>>>>>>> a6a955c (added more configs)
   <br>
 </h1>
 
@@ -91,8 +95,8 @@ Official packages are listed in `pkglist-official.txt` and AUR packages in `pkgl
 
 ```bash
 # Clone the repo
-git clone https://github.com/lurayy/chill_config.git
-cd chill_config
+git clone https://github.com/kabir0st/chill-dots.git
+cd chill-dots
 
 # Run the installer
 chmod +x install.sh
@@ -185,7 +189,7 @@ Full keybindings are in `configs/hypr/bindings.conf`.
 ## Structure
 
 ```
-chill_config/
+chill-dots/
 ├── install.sh              # One-command installer
 ├── pkglist-official.txt    # 176 official Arch packages
 ├── pkglist-aur.txt         # 3 AUR packages
