@@ -1,10 +1,6 @@
 <h1 align="center">
   <br>
-<<<<<<< HEAD
   Chill Dots
-=======
-  chill-dots
->>>>>>> a6a955c (added more configs)
   <br>
 </h1>
 
