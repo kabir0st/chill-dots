@@ -6,7 +6,7 @@
 }
 
 #search entry {
-    color: {{foreground}};
+    color: {{foreground | lighten(0.5)}};
     background-color: alpha({{color0}}, 0.6);
     border: 1px solid {{color8}};
     border-radius: 8px;
@@ -14,13 +14,13 @@
 }
 
 #list row {
-    color: {{foreground}};
+    color: {{foreground | lighten(0.5)}};
     border-radius: 6px;
 }
 
 #list row:selected {
     background-color: alpha({{color4}}, 0.3);
-    color: {{foreground}};
+    color: {{foreground | lighten(0.5)}};
 }
 
 #list row:hover {

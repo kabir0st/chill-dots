@@ -1,7 +1,7 @@
 #!/bin/sh
 # Wallust-generated shell color variables
 wallust_background="{{background}}"
-wallust_foreground="{{foreground}}"
+wallust_foreground="{{foreground | lighten(0.5)}}"
 wallust_color0="{{color0}}"
 wallust_color1="{{color1}}"
 wallust_color2="{{color2}}"

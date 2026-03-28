@@ -1,6 +1,6 @@
 /* Wallust-generated waybar colors */
 @define-color wallust_background alpha({{background}}, 0.85);
-@define-color wallust_foreground {{foreground}};
+@define-color wallust_foreground {{foreground | lighten(0.5)}};
 @define-color wallust_color0 {{color0}};
 @define-color wallust_color1 {{color1}};
 @define-color wallust_color2 {{color2}};
