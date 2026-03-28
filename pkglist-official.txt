@@ -138,7 +138,7 @@ sudo
 sushi
 swaybg
 swayosd
-swww
+awww
 system-config-printer
 tldr
 tmux

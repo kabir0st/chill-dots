@@ -19,18 +19,18 @@ set_wallpaper() {
     # Update omarchy background symlink
     ln -sf "$wallpaper" "$HOME/.config/omarchy/current/background"
 
-    # Kill swaybg if running (conflicts with swww)
+    # Kill swaybg if running (conflicts with awww)
     pkill -x swaybg 2>/dev/null
 
-    # Set wallpaper with swww (smooth transition)
-    if command -v swww &>/dev/null; then
-        # Start swww-daemon if not running
-        if ! pgrep -x swww-daemon > /dev/null; then
-            swww-daemon &
+    # Set wallpaper with awww (smooth transition)
+    if command -v awww &>/dev/null; then
+        # Start awww-daemon if not running
+        if ! pgrep -x awww-daemon > /dev/null; then
+            awww-daemon &
             disown
             sleep 0.5
         fi
-        swww img "$wallpaper" \
+        awww img "$wallpaper" \
             --transition-type grow \
             --transition-pos "$(hyprctl cursorpos)" \
             --transition-duration 1.5 \
@@ -53,7 +53,6 @@ set_wallpaper() {
 
         # Apply wallust colors to starship
         if [[ -f "$CACHE_DIR/colors-starship.toml" ]]; then
-            # Merge wallust palette into starship config
             local starship_conf="$HOME/.config/starship.toml"
             if [[ -f "$starship_conf" ]]; then
                 # Update palette reference
@@ -73,8 +72,10 @@ set_wallpaper() {
 
     fi
 
-    # Generate vibrant kitty colors from wallpaper
-    vibrant-kitty-colors "$wallpaper" &
+    # Generate vibrant kitty colors from wallpaper (if available)
+    if command -v vibrant-kitty-colors &>/dev/null; then
+        vibrant-kitty-colors "$wallpaper" &
+    fi
 
     # Save current wallpaper path
     echo "$wallpaper" > "$CACHE_DIR/current_wallpaper"
@@ -95,20 +96,20 @@ case "${1:-}" in
     "")
         # Interactive GUI picker via waypaper
         waypaper --folder "$WALLPAPER_DIR" 2>/dev/null
-        # After waypaper sets the wallpaper via swww, get the current wallpaper and apply theming
+        # After waypaper sets the wallpaper via awww, get the current wallpaper and apply theming
         sleep 1
-        wallpaper=$(swww query 2>/dev/null | head -1 | grep -oP 'image: \K.*')
+        wallpaper=$(awww query 2>/dev/null | head -1 | grep -oP 'image: \K.*')
         if [[ -n "$wallpaper" && -f "$wallpaper" ]]; then
             # Update omarchy symlink
             ln -sf "$wallpaper" "$HOME/.config/omarchy/current/background"
-            # Apply color theming (wallpaper already set by waypaper/swww)
+            # Apply color theming (wallpaper already set by waypaper/awww)
             if command -v wallust &>/dev/null; then
                 wallust run "$wallpaper"
                 if [[ -f "$HOME/.config/kitty/wallust-colors.conf" ]]; then
                     kitty @ set-colors --all "$HOME/.config/kitty/wallust-colors.conf" 2>/dev/null
                 fi
                 if [[ -f "$CACHE_DIR/colors-starship.toml" ]]; then
-                    local starship_conf="$HOME/.config/starship.toml"
+                    starship_conf="$HOME/.config/starship.toml"
                     if [[ -f "$starship_conf" ]]; then
                         sed -i 's/^palette = .*/palette = "wallust"/' "$starship_conf"
                         sed -i '/^# Wallust-generated starship palette/,$d' "$starship_conf"
@@ -120,7 +121,9 @@ case "${1:-}" in
                     makoctl reload 2>/dev/null
                 fi
             fi
-            vibrant-kitty-colors "$wallpaper" &
+            if command -v vibrant-kitty-colors &>/dev/null; then
+                vibrant-kitty-colors "$wallpaper" &
+            fi
             echo "$wallpaper" > "$CACHE_DIR/current_wallpaper"
             notify-send "Wallpaper" "Theme updated from wallpaper" -i "$wallpaper" -t 3000
         fi

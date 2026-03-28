@@ -4,4 +4,6 @@
 
 # Small delay to let the wallpaper symlink update
 sleep 0.5
-vibrant-kitty-colors &
+if command -v vibrant-kitty-colors &>/dev/null; then
+    vibrant-kitty-colors &
+fi

@@ -38,7 +38,7 @@
 ## Features
 
 - **Auto-theming** — [wallust](https://codeberg.org/explosion-mental/wallust) extracts a 16-color palette from your wallpaper and applies it across your entire desktop in real-time
-- **Wallpaper rotation** — systemd timer swaps wallpapers every 20 minutes with smooth [swww](https://github.com/LGFae/swww) transitions, re-theming everything automatically
+- **Wallpaper rotation** — systemd timer swaps wallpapers every 20 minutes with smooth [awww](https://github.com/jbg/awww) transitions, re-theming everything automatically
 - **106 curated wallpapers** included out of the box
 - **Custom animations** — bezier-curved window open/close, smooth workspace transitions, animated borders
 - **Blur & transparency** — layered blur with vibrancy on panels, launchers, and lock screen
@@ -56,7 +56,7 @@
 | Terminal | [Kitty](https://sw.kovidgoyal.net/kitty/) / [Ghostty](https://ghostty.org/) | GPU-accelerated terminals |
 | App Launcher | [Walker](https://github.com/abenz1267/walker) | Wayland-native application launcher |
 | Notifications | [Mako](https://github.com/emersion/mako) | Lightweight Wayland notification daemon |
-| Wallpaper | [swww](https://github.com/LGFae/swww) + [Waypaper](https://github.com/anufrievroman/waypaper) | Smooth transitions + GUI wallpaper picker |
+| Wallpaper | [awww](https://github.com/jbg/awww) + [Waypaper](https://github.com/anufrievroman/waypaper) | Smooth transitions + GUI wallpaper picker |
 | Auto-theming | [wallust](https://codeberg.org/explosion-mental/wallust) | Color extraction & template system |
 | Shell | [Oh My Zsh](https://ohmyz.sh/) + [Starship](https://starship.rs/) | Zsh with autosuggestions, syntax highlighting, git prompt |
 | OSD | [SwayOSD](https://github.com/ErikReider/SwayOSD) | On-screen display for volume/brightness |
@@ -141,7 +141,7 @@ The auto-theming system is the core of this rice. Here's how it works:
 
 | Trigger | What happens |
 |---------|-------------|
-| **Automatic** (every 20 min) | systemd timer picks a random wallpaper → sets it with swww → runs wallust → reloads all apps |
+| **Automatic** (every 20 min) | systemd timer picks a random wallpaper → sets it with awww → runs wallust → reloads all apps |
 | **Manual switch** | `Super + W` opens Waypaper GUI → pick a wallpaper → colors regenerate |
 | **Omarchy theme change** | The `theme-set` hook re-runs wallust so colors stay in sync |
 
