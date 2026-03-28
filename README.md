@@ -210,6 +210,10 @@ chill-dots/
 
 ---
 
+---
+
+<sup>**AMD GPU users:** If you have an RX 6800 (or similar RDNA2 card) and want to run ML workloads with ROCm, see the [ROCm setup guide](rocm/).</sup>
+
 <p align="center">
   Built on <a href="https://hyprland.org/">Hyprland</a> + <a href="https://omarchy.dev/">Omarchy</a> + <a href="https://codeberg.org/explosion-mental/wallust">wallust</a> on Arch Linux
 </p>
