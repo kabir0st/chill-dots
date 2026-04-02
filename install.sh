@@ -142,7 +142,7 @@ else
     info "Backing up existing configs to $BACKUP_DIR..."
     mkdir -p "$BACKUP_DIR"
 
-    for dir in hypr waybar kitty ghostty mako walker swayosd waypaper wallust fastfetch btop tmux nvim; do
+    for dir in hypr waybar kitty ghostty alacritty mako walker swayosd waypaper wallust fastfetch btop tmux nvim; do
         if [[ -d "$HOME/.config/$dir" ]]; then
             cp -r "$HOME/.config/$dir" "$BACKUP_DIR/" 2>/dev/null || true
         fi
@@ -257,6 +257,14 @@ if [[ -f "$SCRIPT_DIR/configs/ghostty/config" ]]; then
     fi
 fi
 
+# Alacritty
+if [[ -f "$SCRIPT_DIR/configs/alacritty/alacritty.toml" ]]; then
+    mkdir -p "$HOME/.config/alacritty"
+    if deploy "$SCRIPT_DIR/configs/alacritty/alacritty.toml" "$HOME/.config/alacritty/alacritty.toml"; then
+        changes=$((changes + 1))
+    fi
+fi
+
 # Mako
 mkdir -p "$HOME/.config/mako"
 if deploy "$SCRIPT_DIR/configs/mako/config" "$HOME/.config/mako/config"; then
@@ -365,13 +373,12 @@ else
     skip "Oh My Zsh already installed"
 fi
 
-# Install zsh plugins
+# Install oh-my-zsh custom plugins (git-cloned, not available as pacman packages)
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 declare -A zsh_plugins=(
-    ["zsh-autosuggestions"]="https://github.com/zsh-users/zsh-autosuggestions"
-    ["zsh-syntax-highlighting"]="https://github.com/zsh-users/zsh-syntax-highlighting"
-    ["autoswitch_virtualenv"]="https://github.com/MichaelAqworthy/zsh-autoswitch-virtualenv"
+    ["zsh-history-substring-search"]="https://github.com/zsh-users/zsh-history-substring-search"
+    ["you-should-use"]="https://github.com/MichaelAquilina/zsh-you-should-use"
 )
 
 for plugin in "${!zsh_plugins[@]}"; do
@@ -385,6 +392,9 @@ for plugin in "${!zsh_plugins[@]}"; do
         skip "$plugin already installed"
     fi
 done
+
+# Note: zsh-autosuggestions and zsh-syntax-highlighting are installed as system
+# packages (pacman) and sourced from /usr/share/zsh/plugins/ in .zshrc
 
 # Deploy .zshrc only if different
 if [[ -f "$HOME/.zshrc" ]] && cmp -s "$SCRIPT_DIR/shell/.zshrc" "$HOME/.zshrc"; then
@@ -547,13 +557,14 @@ echo "    - All packages (official + AUR)"
 echo "    - Hyprland + custom animations, blur, borders"
 echo "    - Waybar (Catppuccin Mocha theme + weather)"
 echo "    - Wallust auto-theming (colors from wallpaper)"
-echo "    - Kitty + Ghostty terminal configs"
+echo "    - Kitty + Ghostty + Alacritty terminal configs"
 echo "    - Neovim (LazyVim + custom plugins)"
 echo "    - Tmux with custom keybindings"
 echo "    - Fastfetch with custom logo"
 echo "    - Btop system monitor"
 echo "    - Wallpaper rotation (every 20 min)"
-echo "    - Starship prompt + Oh My Zsh"
+echo "    - Zsh + Oh My Zsh + Starship prompt"
+echo "    - Aliases, zoxide, mise, fzf integration"
 echo "    - CopyQ clipboard manager"
 echo "    - SwayOSD + Mako notifications"
 echo "    - Walker launcher with auto-restart"

@@ -1,4 +1,5 @@
 brave-bin
+cursor-bin
 jamesdsp
 wallust
 waypaper

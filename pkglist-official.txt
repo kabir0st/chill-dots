@@ -1,9 +1,11 @@
 1password-beta
 1password-cli
 aether
+alacritty
 alsa-utils
 amd-ucode
 asdcontrol
+awww
 base
 base-devel
 bash-completion
@@ -21,7 +23,6 @@ cups
 cups-browsed
 cups-filters
 cups-pdf
-cursor-bin
 docker
 docker-buildx
 docker-compose
@@ -116,6 +117,7 @@ pipewire-pulse
 playerctl
 plocate
 plymouth
+pnpm
 polkit-gnome
 postgresql-libs
 power-profiles-daemon
@@ -138,7 +140,6 @@ sudo
 sushi
 swaybg
 swayosd
-awww
 system-config-printer
 tldr
 tmux
@@ -152,9 +153,12 @@ ufw
 ufw-docker
 unzip
 usage
+usbutils
+uv
 uwsm
 vulkan-radeon
 waybar
+wget
 whois
 wireless-regdb
 wiremix
@@ -171,3 +175,6 @@ yay
 zoxide
 zram-generator
 zsh
+zsh-autosuggestions
+zsh-completions
+zsh-syntax-highlighting

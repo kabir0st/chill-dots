@@ -1,27 +1,211 @@
+# Path to Oh My Zsh
 export ZSH="$HOME/.oh-my-zsh"
+
+# Disable oh-my-zsh theme — we use Starship
 ZSH_THEME=""
 
-# Prevent oh-my-zsh/virtualenv plugin from prepending (venv_name) to prompt
-export VIRTUAL_ENV_DISABLE_PROMPT=1
+# Auto-update oh-my-zsh without prompting
+zstyle ':omz:update' mode auto
+zstyle ':omz:update' frequency 7
 
+# Completion dots while waiting
+COMPLETION_WAITING_DOTS="%F{yellow}...%f"
+
+# History timestamps
+HIST_STAMPS="yyyy-mm-dd"
+
+# Plugins
 plugins=(
-  git
-  docker
-  python
-  virtualenv
-  command-not-found
-  autoswitch_virtualenv
-  zsh-autosuggestions
-  zsh-syntax-highlighting
-  z
-  sudo
-  extract
-  dirhistory
-  copypath
-  jsontools
+  git                           # git aliases & completions
+  docker                        # docker completions
+  docker-compose                # docker-compose completions
+  pip                           # pip completions
+  python                        # python aliases
+  sudo                          # press Esc twice to prepend sudo
+  copypath                      # copy current path to clipboard
+  dirhistory                    # Alt+Left/Right to navigate dir history
+  jsontools                     # pp_json, is_json, urlencode/decode
+  colored-man-pages             # colorful man pages
+  command-not-found             # suggest packages for unknown commands
+  zsh-history-substring-search  # Up/Down searches history by substring
+  you-should-use                # reminds you of aliases you've set
 )
 
 source $ZSH/oh-my-zsh.sh
 
-# Use starship prompt
-eval "$(starship init zsh)"
+# ─── Environment (from Omarchy) ───────────────────────────────────────
+export SUDO_EDITOR="$EDITOR"
+export BAT_THEME=ansi
+export OMARCHY_PATH=$HOME/.local/share/omarchy
+export PATH=$OMARCHY_PATH/bin:$PATH:$HOME/.local/bin
+
+# ROCm environment for AMD RX 6800 (gfx1030)
+export HSA_OVERRIDE_GFX_VERSION=10.3.0
+export HSA_ENABLE_SDMA=0
+export HIP_VISIBLE_DEVICES=0
+
+# ─── History ──────────────────────────────────────────────────────────
+HISTSIZE=32768
+SAVEHIST=32768
+setopt HIST_IGNORE_ALL_DUPS   # no duplicate entries
+setopt HIST_IGNORE_SPACE      # ignore commands starting with space
+setopt HIST_REDUCE_BLANKS     # remove extra blanks
+setopt SHARE_HISTORY          # share history across sessions
+setopt INC_APPEND_HISTORY     # write immediately, not on exit
+
+# ─── Completion tuning ────────────────────────────────────────────────
+setopt AUTO_CD                # type a dir name to cd into it
+setopt CORRECT                # suggest corrections for typos
+setopt COMPLETE_IN_WORD       # complete from both ends of a word
+setopt AUTO_MENU              # show completion menu on tab
+setopt ALWAYS_TO_END          # move cursor to end after completion
+
+zstyle ':completion:*' menu select                          # arrow-key menu
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'  # case-insensitive
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"     # colored completions
+zstyle ':completion:*' group-name ''                        # group by category
+zstyle ':completion:*:descriptions' format '%F{yellow}── %d ──%f'
+
+# ─── Aliases (from Omarchy) ──────────────────────────────────────────
+# File system
+if command -v eza &> /dev/null; then
+  alias ls='eza -lh --group-directories-first --icons=auto'
+  alias lsa='ls -a'
+  alias lt='eza --tree --level=2 --long --icons --git'
+  alias lta='lt -a'
+fi
+
+if [[ "$TERM" == "xterm-kitty" ]]; then
+  alias ff="fzf --preview 'case \$(file --mime-type -b {}) in image/*) kitty icat --clear --transfer-mode=memory --stdin=no --place=\${FZF_PREVIEW_COLUMNS}x\${FZF_PREVIEW_LINES}@0x0 {} ;; *) bat --style=numbers --color=always {} ;; esac'"
+else
+  alias ff="fzf --preview 'bat --style=numbers --color=always {}'"
+fi
+alias eff='$EDITOR "$(ff)"'
+sff() { if [ $# -eq 0 ]; then echo "Usage: sff <destination> (e.g. sff host:/tmp/)"; return 1; fi; local file; file=$(find . -type f -printf '%T@\t%p\n' | sort -rn | cut -f2- | ff) && [ -n "$file" ] && scp "$file" "$1"; }
+
+# Smart cd with zoxide
+if command -v zoxide &> /dev/null; then
+  alias cd="zd"
+  zd() {
+    if (( $# == 0 )); then
+      builtin cd ~ || return
+    elif [[ -d $1 ]]; then
+      builtin cd "$1" || return
+    else
+      if ! z "$@"; then
+        echo "Error: Directory not found"
+        return 1
+      fi
+      printf "\U000F17A9 "
+      pwd
+    fi
+  }
+fi
+
+open() (
+  xdg-open "$@" >/dev/null 2>&1 &
+)
+
+# Directories
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+
+# Tools
+alias c='opencode'
+alias cx='printf "\033[2J\033[3J\033[H" && claude --allow-dangerously-skip-permissions'
+alias d='docker'
+alias r='rails'
+alias t='tmux attach || tmux new -s Work'
+n() { if [ "$#" -eq 0 ]; then command nvim . ; else command nvim "$@"; fi; }
+
+# Git
+alias g='git'
+alias gcm='git commit -m'
+alias gcam='git commit -a -m'
+alias gcad='git commit -a --amend'
+
+# ─── Source Omarchy bash functions (compatible with zsh) ─────────────
+# Skip worktrees (conflicts with oh-my-zsh git 'ga' alias) — ported below
+for fn_file in $OMARCHY_PATH/default/bash/fns/*; do
+  [[ -f "$fn_file" && "$(basename "$fn_file")" != "worktrees" ]] && source "$fn_file"
+done
+
+# Worktree functions (ported from omarchy, renamed to avoid git plugin conflict)
+# Use wta/wtd instead of ga/gd (ga/gwta taken by oh-my-zsh git plugin)
+wta() {
+  if [[ -z "$1" ]]; then
+    echo "Usage: wta [branch name]"
+    return 1
+  fi
+  local branch="$1"
+  local base="$(basename "$PWD")"
+  local wt_path="../${base}--${branch}"
+  git worktree add -b "$branch" "$wt_path"
+  mise trust "$wt_path"
+  cd "$wt_path"
+}
+
+wtd() {
+  if gum confirm "Remove worktree and branch?"; then
+    local cwd base branch root worktree
+    cwd="$(pwd)"
+    worktree="$(basename "$cwd")"
+    root="${worktree%%--*}"
+    branch="${worktree#*--}"
+    if [[ "$root" != "$worktree" ]]; then
+      cd "../$root"
+      git worktree remove "$cwd" --force || return 1
+      git branch -D "$branch"
+    fi
+  fi
+}
+
+# ─── Tool initializations ────────────────────────────────────────────
+# mise (tool version manager)
+if command -v mise &> /dev/null; then
+  eval "$(mise activate zsh)"
+fi
+
+# Starship prompt
+if command -v starship &> /dev/null; then
+  eval "$(starship init zsh)"
+fi
+
+# zoxide (smart cd)
+if command -v zoxide &> /dev/null; then
+  eval "$(zoxide init zsh)"
+fi
+
+# try (task management)
+if command -v try &> /dev/null; then
+  eval "$(SHELL=/bin/zsh command try init ~/Work/tries)"
+fi
+
+# fzf
+if command -v fzf &> /dev/null; then
+  [[ -f /usr/share/fzf/completion.zsh ]] && source /usr/share/fzf/completion.zsh
+  [[ -f /usr/share/fzf/key-bindings.zsh ]] && source /usr/share/fzf/key-bindings.zsh
+fi
+
+# ─── System zsh plugins (from pacman) ────────────────────────────────
+source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh 2>/dev/null
+source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
+
+# Autosuggestion config
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#888888"
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+
+# History substring search keybindings
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+
+# ─── pyenv ────────────────────────────────────────────────────────────
+export PATH="$HOME/.pyenv/bin:$PATH"
+if command -v pyenv &> /dev/null; then
+  eval "$(pyenv init --path)"
+  eval "$(pyenv virtualenv-init -)"
+fi
+
+# ─── Cargo/Rust ───────────────────────────────────────────────────────
+. "$HOME/.local/share/../bin/env" 2>/dev/null

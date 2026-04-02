@@ -53,27 +53,28 @@
 |-----------|------|-------------|
 | Window Manager | [Hyprland](https://hyprland.org/) | Tiling Wayland compositor with animations & blur |
 | Status Bar | [Waybar](https://github.com/Alexays/Waybar) | Customizable bar with weather, system stats, workspaces |
-| Terminal | [Kitty](https://sw.kovidgoyal.net/kitty/) / [Ghostty](https://ghostty.org/) | GPU-accelerated terminals |
+| Terminal | [Kitty](https://sw.kovidgoyal.net/kitty/) / [Ghostty](https://ghostty.org/) / [Alacritty](https://alacritty.org/) | GPU-accelerated terminals |
 | App Launcher | [Walker](https://github.com/abenz1267/walker) | Wayland-native application launcher |
 | Notifications | [Mako](https://github.com/emersion/mako) | Lightweight Wayland notification daemon |
 | Wallpaper | [awww](https://github.com/jbg/awww) + [Waypaper](https://github.com/anufrievroman/waypaper) | Smooth transitions + GUI wallpaper picker |
 | Auto-theming | [wallust](https://codeberg.org/explosion-mental/wallust) | Color extraction & template system |
-| Shell | [Oh My Zsh](https://ohmyz.sh/) + [Starship](https://starship.rs/) | Zsh with autosuggestions, syntax highlighting, git prompt |
+| Shell | [Oh My Zsh](https://ohmyz.sh/) + [Starship](https://starship.rs/) | Zsh with autosuggestions, syntax highlighting, zoxide, mise, aliases |
 | OSD | [SwayOSD](https://github.com/ErikReider/SwayOSD) | On-screen display for volume/brightness |
 | Lock Screen | [Hyprlock](https://github.com/hyprwm/hyprlock) | Hyprland-native lock screen |
 | Idle Daemon | [Hypridle](https://github.com/hyprwm/hypridle) | Auto-lock & screen off on idle |
 | Theme Base | [Omarchy](https://omarchy.dev/) | Base theme layer |
 
 <details>
-<summary><strong>Full package list (176 official + 3 AUR)</strong></summary>
+<summary><strong>Full package list (180 official + 5 AUR)</strong></summary>
 
 Official packages are listed in `pkglist-official.txt` and AUR packages in `pkglist-aur.txt`. Key categories:
 
-- **Dev tools** — neovim, git, docker, lazygit, lazydocker, nodejs, python, rust, ruby
-- **Browsers** — chromium, firefox, brave (AUR)
+- **Dev tools** — neovim, git, docker, lazygit, lazydocker, nodejs, python, rust, ruby, mise, pnpm, uv
+- **Browsers** — chromium, brave (AUR), cursor (AUR)
 - **Media** — obs-studio, kdenlive, mpv, ffmpeg, imagemagick
 - **Apps** — obsidian, signal-desktop, spotify, libreoffice
-- **CLI utilities** — btop, eza, bat, fzf, ripgrep, fd, tldr, jq, tmux
+- **CLI utilities** — btop, eza, bat, fzf, ripgrep, fd, tldr, jq, tmux, zoxide, wget
+- **Zsh plugins** — zsh-autosuggestions, zsh-syntax-highlighting, zsh-completions (system packages)
 - **Fonts** — JetBrains Mono Nerd Font, Noto (CJK + Emoji)
 
 </details>
@@ -105,7 +106,7 @@ The installer will:
 2. Back up your existing configs to `~/.config-backup-<timestamp>/`
 3. Copy 106 wallpapers to `~/Pictures/Wallpapers/`
 4. Deploy all config files to `~/.config/`
-5. Set up Oh My Zsh with plugins (autosuggestions, syntax highlighting, autoswitch-virtualenv)
+5. Set up Oh My Zsh with plugins, aliases, zoxide, mise, fzf, and tool integrations
 6. Enable systemd services (wallpaper rotation + audio)
 7. Apply the default theme and generate initial color scheme
 
@@ -187,14 +188,15 @@ Full keybindings are in `configs/hypr/bindings.conf`.
 ```
 chill-dots/
 ├── install.sh              # One-command installer
-├── pkglist-official.txt    # 176 official Arch packages
-├── pkglist-aur.txt         # 3 AUR packages
+├── pkglist-official.txt    # 180 official Arch packages
+├── pkglist-aur.txt         # 5 AUR packages
 ├── configs/
 │   ├── hypr/               # Hyprland (WM, animations, blur, bindings)
 │   ├── wallust/            # Auto-theming engine + 7 color templates
 │   ├── waybar/             # Status bar + weather script
 │   ├── kitty/              # Terminal config
 │   ├── ghostty/            # Alt terminal config
+│   ├── alacritty/          # Alt terminal config
 │   ├── mako/               # Notification daemon
 │   ├── starship/           # Shell prompt
 │   ├── walker/             # App launcher
