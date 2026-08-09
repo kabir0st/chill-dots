@@ -1,0 +1,5 @@
+[soe][Limiter#0]
+attack=1
+gainBoost=false
+lookahead=1
+threshold=-1

@@ -25,8 +25,16 @@ mod_shell_zsh_post() {
     # --keep-zshrc matters: the module deploys .zshrc first, and the OMZ
     # installer would otherwise replace it with its own template.
     if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
+        if ! command -v zsh &>/dev/null; then
+            # The OMZ installer refuses to run without zsh, and its failure
+            # message reads like a broken installer rather than a missing
+            # package — say what actually happened.
+            warn "Skipping Oh My Zsh — zsh is not installed (its package failed above). Re-run the installer once zsh is in place."
+            return 0
+        fi
         info "Installing Oh My Zsh..."
         if sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended --keep-zshrc; then
+            journal created-tree "$HOME/.oh-my-zsh"
             ok "Oh My Zsh installed"
         else
             err "Failed to install Oh My Zsh"
@@ -44,7 +52,10 @@ mod_shell_zsh_post() {
         esac
         if [[ -d "$zsh_custom/plugins/$plugin" ]]; then
             skip "$plugin already installed"
+        elif [[ ! -d "$zsh_custom" ]]; then
+            skip "$plugin skipped — no Oh My Zsh custom directory yet"
         elif git clone "$url" "$zsh_custom/plugins/$plugin" &>/dev/null; then
+            journal created-tree "$zsh_custom/plugins/$plugin"
             ok "$plugin installed"
         else
             err "Failed to clone $plugin"
@@ -74,7 +85,11 @@ set_default_shell_zsh() {
         return 0
     fi
     info "Setting zsh as the default shell (may ask for your password)..."
+    local previous_shell
+    previous_shell="$(getent passwd "$USER" 2>/dev/null | cut -d: -f7)"
+    [[ -n "$previous_shell" ]] || previous_shell="$SHELL"
     if chsh -s "$zsh_bin"; then
+        journal chsh "$previous_shell"
         ok "Default shell set to zsh (takes effect at next login)"
     else
         warn "chsh failed — run manually: chsh -s $zsh_bin"

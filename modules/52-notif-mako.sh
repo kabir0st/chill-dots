@@ -24,7 +24,9 @@ mod_notif_mako_deploy() {
     deploy_rendered "$SCRIPT_DIR/configs/mako/config" "$HOME/.config/mako/config" render_mako_config
     # Placeholder so the wallust include is valid before the first render
     if [[ ! -f "$HOME/.config/mako/wallust-colors.conf" && "$DRY_RUN" != 1 ]]; then
+        journal_dirs "$HOME/.config/mako"
         mkdir -p "$HOME/.config/mako"
+        journal created "$HOME/.config/mako/wallust-colors.conf"
         touch "$HOME/.config/mako/wallust-colors.conf"
     fi
 }

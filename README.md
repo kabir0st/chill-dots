@@ -44,7 +44,7 @@
 - **106 curated wallpapers** included out of the box
 - **Two OSes, one repo** — the installer detects Arch or PikaOS and asks you to confirm, maps package names per distro, and adapts configs per compositor
 - **Pick what you install** — arrow-key installer (no dependencies — no gum, no whiptail) with presets, a component checklist, and a preview of exactly which packages get installed and which of your files get replaced
-- **Per-run backups** — every file the installer replaces is copied to `~/.config-backup-<timestamp>/` first, on every run
+- **Undo any run** — every run journals what it changed (files replaced *and* created, units enabled, plugins cloned, shell changed), so `./install.sh --rollback` puts it all back. Files you already had are never touched
 - **Live terminal recolor** — kitty windows change colors in place on every wallpaper change (config reload via SIGUSR1)
 - **Weather in your bar** — live weather module in [Waybar](https://github.com/Alexays/Waybar) (Arch default)
 
@@ -64,6 +64,7 @@
 | Notifications | [Mako](https://github.com/emersion/mako) | ✓ | optional — pikabar stays |
 | OSD | [SwayOSD](https://github.com/ErikReider/SwayOSD) | ✓ | optional |
 | Lock / Idle | [Hyprlock](https://github.com/hyprwm/hyprlock) + [Hypridle](https://github.com/hyprwm/hypridle) | ✓ | optional — pikabar-lock stays |
+| Sound | [EasyEffects](https://github.com/wwmm/easyeffects) EQ + Dolby convolver presets, PipeWire tweaks | optional | ✓ |
 
 <details>
 <summary><strong>Full Arch package list (official + AUR)</strong></summary>
@@ -109,8 +110,9 @@ The installer walks you through it:
 2. **What do you want?** — *Recommended* (the OS default set), *Everything*, *Custom* (component checklist), or *Configs only* (no packages)
 3. Shows which packages will be installed and which existing files will be replaced, then asks to proceed
 4. Backs up every replaced file to `~/.config-backup-<timestamp>/` — on every run
-5. Installs packages (pacman/yay on Arch, pikman/apt on PikaOS), deploys configs, enables services
+5. Installs packages (pacman/yay on Arch, apt on PikaOS) — asking for your sudo password once, up front — then deploys configs and enables services
 6. Generates the initial wallust color scheme
+7. Records everything it changed, so the whole run can be undone
 
 The menus are plain bash — nothing to install first. `↑↓` move, `space` toggles, `a`/`n`/`d` select all/none/defaults, `enter` confirms, `q` cancels. Terminals that can't do arrow keys get a numbered prompt instead.
 
@@ -126,6 +128,21 @@ Useful flags:
 ```
 
 After installation, **log out and back in** (or reboot).
+
+### Undoing a run
+
+Every run that changes anything writes a run directory — `~/.config-backup-<id>/` — holding a pristine copy of each file it replaced and a journal of everything else it did: files and directories created, wallpapers added, systemd units enabled, plugin repos cloned, your previous login shell. That journal is what makes a real undo possible:
+
+```bash
+./install.sh --list-runs        # what each run changed, newest first
+./install.sh --rollback         # undo the most recent run (asks first)
+./install.sh --rollback 20260809-143210   # undo a specific run
+./install.sh --rollback --yes   # no confirmation prompt
+```
+
+If a run finishes with errors it offers to roll itself back on the spot.
+
+Rollback is deliberately narrow: it only touches paths the journal says *that run* created or replaced, so your own files are never collateral — a wallpaper you already had is never removed, and a directory is only deleted while it is empty. It also **never uninstalls packages**; it lists them and leaves the decision to you.
 
 ---
 
@@ -150,6 +167,7 @@ Run `./install.sh --list-modules` for the live list. Defaults per OS:
 | notif-mako | on | off | **PikaOS:** conflicts with pikabar's notification service — see notes |
 | osd-swayosd | on | off | |
 | lock-idle | on | off | **PikaOS:** deploys a niri-adapted hypridle that keeps `pikabar-lock` |
+| audio-easyeffects | off | on | EasyEffects EQ + Dolby convolver presets, PipeWire no-suspend rule |
 | tools-cli | on | off | btop, tmux, lazygit, fastfetch, gum |
 | editor-nvim | on | off | LazyVim setup |
 | extras-arch | on | — | the full Arch package lists |
@@ -209,12 +227,16 @@ The PikaOS default profile deliberately **keeps pikabar** (bar, launcher `Mod+D`
 - **Fonts** — JetBrainsMono Nerd Font has no Debian package; the installer downloads it from the nerd-fonts release into `~/.local/share/fonts`.
 - **waypaper** — installed via `pipx install --system-site-packages waypaper`; make sure `~/.local/bin` is on your PATH (the shipped `.zshrc` does this).
 - **bat/fd** — Debian names them `batcat`/`fdfind`; the shipped `.zshrc` aliases them automatically.
+- **Packages go through `apt`, not `pikman`** — despite the name, `pikman` is PikaOS's *container* package manager (it has `init`/`enter`/`run` subcommands). `pikman install zsh` installs into a managed container, not onto the host, and fails outright when no container exists.
+- **Sound** — the `audio-easyeffects` module ships the EasyEffects profile (equalizer, Dolby convolver impulse responses, limiter, autogain, multiband compressor, bass enhancer), plus a WirePlumber rule that stops the analog speakers from suspending between sounds. EasyEffects is the **Flatpak** build here, so its config lives in `~/.var/app/com.github.wwmm.easyeffects/`, not `~/.config/easyeffects`; the module targets whichever layout your install uses. The bundled autoload rule is bound to this laptop's output sink — on other hardware the presets are still installed, you just pick one manually in the GUI.
 
 Troubleshooting:
 
 - *Nerd font glyphs missing* → `fc-list | grep JetBrainsMono` — if empty, re-run the terminal-kitty module or download `JetBrainsMono.zip` from [nerd-fonts releases](https://github.com/ryanoasis/nerd-fonts/releases) into `~/.local/share/fonts` and run `fc-cache -f`
 - *`chsh` didn't stick* → run `chsh -s $(command -v zsh)` manually (needs your password)
 - *Wallpaper timer inactive* → `systemctl --user enable --now wallpaper-rotate.timer`
+- *Packages all failed* → check `~/.config-backup-<id>/packages.log`; the installer keeps the package manager's real output instead of discarding it
+- *Want the whole thing gone* → `./install.sh --rollback`
 
 ---
 
@@ -240,7 +262,7 @@ Full Arch bindings: `configs/hypr/bindings.conf`. PikaOS additions: `configs/nir
 chill-dots/
 ├── install.sh              # Interactive multi-OS installer
 ├── lib/                    # deploy/backup/dry-run, OS dispatch, module registry, arrow-key TUI
-├── os/                     # arch.sh (pacman/yay), pika.sh (pikman/apt, pipx, nerd font)
+├── os/                     # arch.sh (pacman/yay), pika.sh (apt, pipx, nerd font)
 ├── modules/                # one file per selectable component
 ├── profiles/               # arch-default.txt, pika-default.txt
 ├── bin/chill-wallpaper     # compositor-neutral wallpaper + theming driver
@@ -254,6 +276,8 @@ chill-dots/
 │   ├── kitty/              # terminal config + per-OS theme include
 │   ├── ghostty/ alacritty/ # alt terminals
 │   ├── mako/ walker/ swayosd/ waypaper/
+│   ├── easyeffects/        # EQ/convolver presets + impulse responses (PikaOS)
+│   ├── wireplumber/        # speaker no-suspend rule
 │   ├── starship/           # prompt (wallust palette between markers)
 │   ├── fastfetch/          # + config.pika.jsonc (no omarchy commands)
 │   └── omarchy/            # theme hooks (Arch only)

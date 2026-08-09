@@ -17,7 +17,9 @@ mod_terminal_kitty_deploy() {
     # Empty placeholder until wallust renders real colors — kitty logs an
     # error for missing includes otherwise.
     if [[ ! -f "$HOME/.config/kitty/wallust-colors.conf" && "$DRY_RUN" != 1 ]]; then
+        journal_dirs "$HOME/.config/kitty"
         mkdir -p "$HOME/.config/kitty"
+        journal created "$HOME/.config/kitty/wallust-colors.conf"
         touch "$HOME/.config/kitty/wallust-colors.conf"
     fi
 }

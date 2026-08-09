@@ -43,11 +43,11 @@ ensure_yay() {
 # Try the official repos first; fall back to the AUR via yay.
 pkg_install_arch() {
     local pkg="$1"
-    if sudo pacman -S --needed --noconfirm "$pkg" &>/dev/null; then
+    if sudo pacman -S --needed --noconfirm "$pkg" >>"$PKG_LOG" 2>&1; then
         return 0
     fi
     if command -v yay &>/dev/null || ensure_yay; then
-        yay -S --needed --noconfirm "$pkg" &>/dev/null
+        yay -S --needed --noconfirm "$pkg" >>"$PKG_LOG" 2>&1
     else
         return 1
     fi
@@ -71,8 +71,9 @@ install_aur_file() {
             dry "Would install AUR package: $pkg"
             continue
         fi
-        if yay -S --needed --noconfirm "$pkg" &>/dev/null; then
+        if yay -S --needed --noconfirm "$pkg" >>"$PKG_LOG" 2>&1; then
             PKG_INSTALLED=$((PKG_INSTALLED + 1))
+            journal package "$pkg"
         else
             warn "Failed to install AUR package: $pkg"
             PKG_FAILED=$((PKG_FAILED + 1))

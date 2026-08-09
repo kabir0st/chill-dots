@@ -3,8 +3,8 @@
 # JetBrainsMono Nerd Font download (no Debian package exists for it).
 
 preflight_pika() {
-    if ! command -v pikman &>/dev/null && ! command -v apt-get &>/dev/null; then
-        err "Neither pikman nor apt-get found — is this PikaOS/Debian?"
+    if ! command -v apt-get &>/dev/null; then
+        err "apt-get not found — is this PikaOS/Debian?"
         exit 1
     fi
     if module_selected compositor-niri && ! command -v niri &>/dev/null; then
@@ -12,13 +12,21 @@ preflight_pika() {
     fi
 }
 
+# Host packages go through apt. NOT pikman: despite the name, pikman is
+# PikaOS's *container* package manager (apx-style — it has init/enter/run
+# subcommands and installs into a managed container), so `pikman install zsh`
+# never puts zsh on the host and fails outright when no container exists.
 pkg_install_pika() {
     local pkg="$1"
-    if command -v pikman &>/dev/null; then
-        sudo pikman install -y "$pkg" &>/dev/null
-    else
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$pkg" &>/dev/null
-    fi
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$pkg" >>"$PKG_LOG" 2>&1
+}
+
+# One apt transaction for the whole list — far faster than N invocations, each
+# of which takes the dpkg lock and rebuilds caches. install_packages falls back
+# to per-package installs when this fails, so a single bad name never blocks
+# the rest.
+pkg_install_many_pika() {
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$@" >>"$PKG_LOG" 2>&1
 }
 
 NERD_FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip"
@@ -37,13 +45,19 @@ pika_install_nerd_font() {
     tmp="$(mktemp -d)"
     if curl -fsSL --retry 2 -o "$tmp/JetBrainsMono.zip" "$NERD_FONT_URL" &&
        unzip -tq "$tmp/JetBrainsMono.zip" >/dev/null 2>&1; then
+        [[ -d "$fontdir" ]] || journal created-tree "$fontdir"
         mkdir -p "$fontdir"
         unzip -oq "$tmp/JetBrainsMono.zip" -d "$fontdir"
-        fc-cache -f "$fontdir" >/dev/null 2>&1 || true
+        # Rebuild the whole user font cache, not just this directory: a
+        # per-directory refresh leaves fc-list reading the stale global cache,
+        # which used to make a perfectly good install report failure.
+        fc-cache -f "$HOME/.local/share/fonts" >/dev/null 2>&1 || fc-cache -f >/dev/null 2>&1 || true
         if fc-list 2>/dev/null | grep -qi "JetBrainsMono Nerd Font"; then
             ok "JetBrainsMono Nerd Font installed to ~/.local/share/fonts"
+        elif compgen -G "$fontdir/*.ttf" >/dev/null; then
+            ok "JetBrainsMono Nerd Font installed to $fontdir (fontconfig will pick it up at next login)"
         else
-            warn "Nerd font extracted but fontconfig doesn't see it — check ~/.local/share/fonts and run fc-cache -f"
+            warn "Nerd font download extracted nothing — check $fontdir"
         fi
     else
         warn "Could not download JetBrainsMono Nerd Font (offline?) — terminals will fall back to the default monospace font. Retry later or grab JetBrainsMono.zip from https://github.com/ryanoasis/nerd-fonts/releases"
@@ -66,6 +80,7 @@ pika_pipx_install_waypaper() {
     fi
     info "Installing waypaper via pipx..."
     if pipx install --system-site-packages waypaper >/dev/null 2>&1; then
+        journal pipx waypaper
         ok "waypaper installed to ~/.local/bin/waypaper"
     else
         warn "pipx install waypaper failed — run manually: pipx install --system-site-packages waypaper"
