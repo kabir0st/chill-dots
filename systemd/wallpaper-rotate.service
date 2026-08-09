@@ -1,6 +1,8 @@
 [Unit]
 Description=Random wallpaper rotation with color theming
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
 Type=oneshot
-ExecStart=%h/.config/hypr/scripts/wallpaper.sh random
+ExecStart=%h/.local/bin/chill-wallpaper random

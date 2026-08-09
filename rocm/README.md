@@ -53,6 +53,14 @@ The **RX 6800 (gfx1030) is NOT officially supported** by AMD's ROCm — their su
 
 These are set in `~/.config/environment.d/rocm.conf` by the installer so they apply to all sessions and systemd services.
 
+> **Note:** the chill-dots `.zshrc` no longer exports these directly (they're hardware-specific). If you want them in your shell too, put them in `~/.zshrc.local` — it is sourced automatically at the end of `.zshrc`:
+>
+> ```zsh
+> export HSA_OVERRIDE_GFX_VERSION=10.3.0
+> export HSA_ENABLE_SDMA=0
+> export HIP_VISIBLE_DEVICES=0
+> ```
+
 ---
 
 ## Manual Verification

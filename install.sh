@@ -1,541 +1,173 @@
 #!/bin/bash
 # ============================================================================
-# Chill Dots installer
-# Restores your full Hyprland/Omarchy rice on a fresh Arch + Omarchy install
+# Chill Dots installer — Arch/Omarchy (Hyprland) and PikaOS (niri)
 #
-# Usage: Clone this repo, install Omarchy first, then run:
-#   chmod +x install.sh && ./install.sh
+# Interactive by default: pick the components you want, see exactly which
+# packages get installed and which files get replaced (with per-run backups)
+# before anything happens.
 #
-# Safe to re-run: each step checks actual state before acting.
+# Usage:
+#   ./install.sh                       interactive install (auto-detects OS)
+#   ./install.sh --list-modules        show available components for this OS
+#   ./install.sh --dry-run             show what would change, write nothing
+#   ./install.sh --non-interactive --profile pika-default
+#   ./install.sh --os arch --modules terminal-kitty,shell-zsh
+#
+# Options:
+#   --os arch|pika       Override OS detection
+#   --profile NAME       Use a module set from profiles/NAME.txt
+#   --modules a,b,c      Install exactly these modules
+#   --all                Install every module available on this OS
+#   --non-interactive    No prompts; defaults used unless told otherwise
+#   --dry-run            Print planned actions without changing anything
+#   --skip-packages      Skip all package installation
+#   --list-modules       List modules for this OS and exit
+#
+# Safe to re-run: every step checks actual state before acting.
 # ============================================================================
 
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Colors
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-BLUE='\033[0;34m'
-GRAY='\033[0;90m'
-NC='\033[0m'
+DRY_RUN=0
+SKIP_PACKAGES=0
+NON_INTERACTIVE=0
+SELECT_ALL=0
+PROFILE=""
+MODULES_ARG=""
+OS_OVERRIDE=""
+LIST_MODULES=0
 
-# Issue tracker — collects all warnings/errors for summary
-ISSUES=()
-
-info()  { echo -e "${BLUE}[INFO]${NC} $1"; }
-ok()    { echo -e "${GREEN}[OK]${NC} $1"; }
-warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; ISSUES+=("WARN: $1"); }
-err()   { echo -e "${RED}[ERROR]${NC} $1"; ISSUES+=("ERROR: $1"); }
-skip()  { echo -e "${GRAY}[SKIP]${NC} $1"; }
-
-# ============================================================================
-# Pre-flight checks
-# ============================================================================
-
-if [[ ! -d "$HOME/.local/share/omarchy" ]]; then
-    err "Omarchy not found. Install Omarchy first, then re-run this script."
-    exit 1
-fi
-
-if ! command -v pacman &>/dev/null; then
-    err "This script is for Arch Linux only."
-    exit 1
-fi
-
-echo ""
-echo "============================================"
-echo "  Chill Dots installer"
-echo "  Restoring your Hyprland/Omarchy rice"
-echo "============================================"
-echo ""
-
-# ============================================================================
-# Step 1: Install packages
-# ============================================================================
-
-info "Step 1/7: Checking packages..."
-
-# Install yay if not present (needed for AUR packages)
-if ! command -v yay &>/dev/null; then
-    info "Installing yay (AUR helper)..."
-    if sudo pacman -S --needed --noconfirm git base-devel; then
-        tmpdir=$(mktemp -d)
-        if git clone https://aur.archlinux.org/yay.git "$tmpdir/yay" && \
-           (cd "$tmpdir/yay" && makepkg -si --noconfirm); then
-            ok "yay installed"
-        else
-            err "Failed to build yay from AUR"
-        fi
-        rm -rf "$tmpdir"
-    else
-        err "Failed to install yay dependencies"
-    fi
-else
-    skip "yay already installed"
-fi
-
-# Install official packages one by one so a single bad package doesn't block the rest
-pkg_installed=0
-pkg_failed=0
-pkg_skipped=0
-while IFS= read -r pkg; do
-    [[ -z "$pkg" || "$pkg" == \#* ]] && continue
-    if pacman -Qi "$pkg" &>/dev/null; then
-        pkg_skipped=$((pkg_skipped + 1))
-    else
-        if sudo pacman -S --needed --noconfirm "$pkg" &>/dev/null; then
-            pkg_installed=$((pkg_installed + 1))
-        else
-            warn "Failed to install official package: $pkg"
-            pkg_failed=$((pkg_failed + 1))
-        fi
-    fi
-done < "$SCRIPT_DIR/pkglist-official.txt"
-
-if [[ $pkg_installed -gt 0 || $pkg_failed -gt 0 ]]; then
-    ok "Official packages: $pkg_installed installed, $pkg_skipped already present, $pkg_failed failed"
-else
-    skip "All official packages already installed"
-fi
-
-# Install AUR packages one by one
-aur_installed=0
-aur_failed=0
-aur_skipped=0
-if command -v yay &>/dev/null; then
-    while IFS= read -r pkg; do
-        [[ -z "$pkg" || "$pkg" == \#* ]] && continue
-        if pacman -Qi "$pkg" &>/dev/null; then
-            aur_skipped=$((aur_skipped + 1))
-        else
-            if yay -S --needed --noconfirm "$pkg" &>/dev/null; then
-                aur_installed=$((aur_installed + 1))
-            else
-                warn "Failed to install AUR package: $pkg"
-                aur_failed=$((aur_failed + 1))
-            fi
-        fi
-    done < "$SCRIPT_DIR/pkglist-aur.txt"
-
-    if [[ $aur_installed -gt 0 || $aur_failed -gt 0 ]]; then
-        ok "AUR packages: $aur_installed installed, $aur_skipped already present, $aur_failed failed"
-    else
-        skip "All AUR packages already installed"
-    fi
-else
-    err "yay not available — skipping all AUR packages"
-fi
-
-# ============================================================================
-# Step 2: Backup existing configs (only if no backup exists yet)
-# ============================================================================
-
-info "Step 2/7: Checking backup..."
-
-existing_backup=$(find "$HOME" -maxdepth 1 -name ".config-backup-*" -type d 2>/dev/null | head -1)
-if [[ -n "$existing_backup" ]]; then
-    skip "Backup already exists at $existing_backup"
-else
-    BACKUP_DIR="$HOME/.config-backup-$(date +%Y%m%d-%H%M%S)"
-    info "Backing up existing configs to $BACKUP_DIR..."
-    mkdir -p "$BACKUP_DIR"
-
-    for dir in hypr waybar kitty ghostty alacritty mako walker swayosd waypaper wallust fastfetch btop tmux nvim; do
-        if [[ -d "$HOME/.config/$dir" ]]; then
-            cp -r "$HOME/.config/$dir" "$BACKUP_DIR/" 2>/dev/null || true
-        fi
-    done
-    [[ -f "$HOME/.config/starship.toml" ]] && cp "$HOME/.config/starship.toml" "$BACKUP_DIR/" || true
-    [[ -f "$HOME/.zshrc" ]] && cp "$HOME/.zshrc" "$BACKUP_DIR/" || true
-
-    ok "Backup saved to $BACKUP_DIR"
-fi
-
-# ============================================================================
-# Step 3: Copy wallpapers
-# ============================================================================
-
-info "Step 3/7: Copying wallpapers..."
-mkdir -p "$HOME/Pictures/Wallpapers"
-
-copied=0
-skipped=0
-failed=0
-while IFS= read -r -d '' src; do
-    filename="$(basename "$src")"
-    dest="$HOME/Pictures/Wallpapers/$filename"
-    if [[ -f "$dest" ]]; then
-        skipped=$((skipped + 1))
-    else
-        if cp -- "$src" "$dest"; then
-            copied=$((copied + 1))
-        else
-            warn "Failed to copy wallpaper: $filename"
-            failed=$((failed + 1))
-        fi
-    fi
-done < <(find "$SCRIPT_DIR/wallpapers" -maxdepth 1 -type f -print0 2>/dev/null)
-
-if [[ $copied -eq 0 && $failed -eq 0 ]]; then
-    skip "All $skipped wallpapers already in ~/Pictures/Wallpapers/"
-else
-    ok "Wallpapers: $copied copied, $skipped already existed, $failed failed"
-fi
-
-# ============================================================================
-# Step 4: Deploy config files
-# ============================================================================
-
-info "Step 4/7: Deploying config files..."
-
-# Helper: copy file only if source and dest differ
-deploy() {
-    local src="$1" dest="$2"
-    if [[ ! -f "$src" ]]; then
-        warn "Source file missing: $src"
-        return 1
-    fi
-    if [[ -f "$dest" ]] && cmp -s "$src" "$dest"; then
-        return 1  # no change needed
-    fi
-    mkdir -p "$(dirname "$dest")"
-    cp "$src" "$dest"
-    return 0
+usage() {
+    sed -n '2,26p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
-changes=0
-
-# Hyprland
-mkdir -p "$HOME/.config/hypr/scripts" "$HOME/.config/hypr/wallust"
-for f in hyprland.conf looknfeel.conf bindings.conf monitors.conf input.conf autostart.conf hypridle.conf hyprlock.conf hyprsunset.conf xdph.conf; do
-    if deploy "$SCRIPT_DIR/configs/hypr/$f" "$HOME/.config/hypr/$f"; then
-        changes=$((changes + 1))
-    fi
-done
-if deploy "$SCRIPT_DIR/configs/hypr/scripts/wallpaper.sh" "$HOME/.config/hypr/scripts/wallpaper.sh"; then
-    changes=$((changes + 1))
-fi
-chmod +x "$HOME/.config/hypr/scripts/wallpaper.sh" 2>/dev/null || true
-
-# Wallust (auto-theming)
-mkdir -p "$HOME/.config/wallust/templates"
-if deploy "$SCRIPT_DIR/configs/wallust/wallust.toml" "$HOME/.config/wallust/wallust.toml"; then
-    changes=$((changes + 1))
-fi
-for src in "$SCRIPT_DIR/configs/wallust/templates/"*; do
-    [[ -f "$src" ]] || continue
-    if deploy "$src" "$HOME/.config/wallust/templates/$(basename "$src")"; then
-        changes=$((changes + 1))
-    fi
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --os)               OS_OVERRIDE="${2:-}"; shift 2 ;;
+        --os=*)             OS_OVERRIDE="${1#*=}"; shift ;;
+        --profile)          PROFILE="${2:-}"; shift 2 ;;
+        --profile=*)        PROFILE="${1#*=}"; shift ;;
+        --modules)          MODULES_ARG="${2:-}"; shift 2 ;;
+        --modules=*)        MODULES_ARG="${1#*=}"; shift ;;
+        --all)              SELECT_ALL=1; shift ;;
+        --non-interactive)  NON_INTERACTIVE=1; shift ;;
+        --dry-run)          DRY_RUN=1; shift ;;
+        --skip-packages)    SKIP_PACKAGES=1; shift ;;
+        --list-modules)     LIST_MODULES=1; shift ;;
+        -h|--help)          usage; exit 0 ;;
+        *)                  echo "Unknown option: $1"; echo ""; usage; exit 1 ;;
+    esac
 done
 
-# Waybar
-mkdir -p "$HOME/.config/waybar/scripts" "$HOME/.config/waybar/wallust"
-for f in config.jsonc style.css mocha.css; do
-    if deploy "$SCRIPT_DIR/configs/waybar/$f" "$HOME/.config/waybar/$f"; then
-        changes=$((changes + 1))
-    fi
+# shellcheck source=lib/core.sh
+source "$SCRIPT_DIR/lib/core.sh"
+# shellcheck source=lib/os.sh
+source "$SCRIPT_DIR/lib/os.sh"
+# shellcheck source=lib/registry.sh
+source "$SCRIPT_DIR/lib/registry.sh"
+# shellcheck source=lib/ui.sh
+source "$SCRIPT_DIR/lib/ui.sh"
+# shellcheck source=os/arch.sh
+source "$SCRIPT_DIR/os/arch.sh"
+# shellcheck source=os/pika.sh
+source "$SCRIPT_DIR/os/pika.sh"
+
+for module_file in "$SCRIPT_DIR"/modules/*.sh; do
+    # shellcheck source=/dev/null
+    source "$module_file"
 done
-if deploy "$SCRIPT_DIR/configs/waybar/scripts/waybar-wttr.py" "$HOME/.config/waybar/scripts/waybar-wttr.py"; then
-    changes=$((changes + 1))
-fi
-chmod +x "$HOME/.config/waybar/scripts/waybar-wttr.py" 2>/dev/null || true
+unset module_file
 
-# Kitty
-mkdir -p "$HOME/.config/kitty"
-if deploy "$SCRIPT_DIR/configs/kitty/kitty.conf" "$HOME/.config/kitty/kitty.conf"; then
-    changes=$((changes + 1))
+detect_os
+
+if [[ "$LIST_MODULES" == 1 ]]; then
+    list_modules
+    exit 0
 fi
 
-# Ghostty (if config exists)
-if [[ -f "$SCRIPT_DIR/configs/ghostty/config" ]]; then
-    mkdir -p "$HOME/.config/ghostty"
-    if deploy "$SCRIPT_DIR/configs/ghostty/config" "$HOME/.config/ghostty/config"; then
-        changes=$((changes + 1))
-    fi
-fi
+echo ""
+echo "============================================"
+echo "  Chill Dots installer  ($CDOTS_OS)"
+[[ "$DRY_RUN" == 1 ]] && echo "  DRY RUN — nothing will be changed"
+echo "============================================"
 
-# Alacritty
-if [[ -f "$SCRIPT_DIR/configs/alacritty/alacritty.toml" ]]; then
-    mkdir -p "$HOME/.config/alacritty"
-    if deploy "$SCRIPT_DIR/configs/alacritty/alacritty.toml" "$HOME/.config/alacritty/alacritty.toml"; then
-        changes=$((changes + 1))
-    fi
-fi
+resolve_selection
 
-# Mako
-mkdir -p "$HOME/.config/mako"
-if deploy "$SCRIPT_DIR/configs/mako/config" "$HOME/.config/mako/config"; then
-    changes=$((changes + 1))
-fi
+case "$CDOTS_OS" in
+    arch) preflight_arch ;;
+    pika) preflight_pika ;;
+esac
 
-# Starship
-if deploy "$SCRIPT_DIR/configs/starship/starship.toml" "$HOME/.config/starship.toml"; then
-    changes=$((changes + 1))
-fi
+preview_selection
+confirm_proceed
 
-# Walker
-mkdir -p "$HOME/.config/walker/themes"
-if deploy "$SCRIPT_DIR/configs/walker/config.toml" "$HOME/.config/walker/config.toml"; then
-    changes=$((changes + 1))
-fi
-
-# SwayOSD
-mkdir -p "$HOME/.config/swayosd"
-for f in config.toml style.css; do
-    if deploy "$SCRIPT_DIR/configs/swayosd/$f" "$HOME/.config/swayosd/$f"; then
-        changes=$((changes + 1))
-    fi
+for module_id in "${SELECTED_MODULES[@]}"; do
+    run_module "$module_id"
 done
-
-# Waypaper
-mkdir -p "$HOME/.config/waypaper"
-if deploy "$SCRIPT_DIR/configs/waypaper/config.ini" "$HOME/.config/waypaper/config.ini"; then
-    sed -i "s|/home/lurayy|$HOME|g" "$HOME/.config/waypaper/config.ini"
-    changes=$((changes + 1))
-else
-    # Still fix paths even if file was already there
-    if grep -q "/home/lurayy" "$HOME/.config/waypaper/config.ini" 2>/dev/null; then
-        sed -i "s|/home/lurayy|$HOME|g" "$HOME/.config/waypaper/config.ini"
-        changes=$((changes + 1))
-    fi
-fi
-
-# Omarchy hooks & extensions
-mkdir -p "$HOME/.config/omarchy/hooks" "$HOME/.config/omarchy/extensions"
-if deploy "$SCRIPT_DIR/configs/omarchy/hooks/theme-set" "$HOME/.config/omarchy/hooks/theme-set"; then
-    changes=$((changes + 1))
-fi
-if deploy "$SCRIPT_DIR/configs/omarchy/extensions/menu.sh" "$HOME/.config/omarchy/extensions/menu.sh"; then
-    changes=$((changes + 1))
-fi
-chmod +x "$HOME/.config/omarchy/hooks/theme-set" 2>/dev/null || true
-
-# Fastfetch
-mkdir -p "$HOME/.config/fastfetch"
-for f in config.jsonc logo.txt; do
-    if deploy "$SCRIPT_DIR/configs/fastfetch/$f" "$HOME/.config/fastfetch/$f"; then
-        changes=$((changes + 1))
-    fi
-done
-
-# Btop
-mkdir -p "$HOME/.config/btop"
-if deploy "$SCRIPT_DIR/configs/btop/btop.conf" "$HOME/.config/btop/btop.conf"; then
-    changes=$((changes + 1))
-fi
-
-# Tmux
-mkdir -p "$HOME/.config/tmux"
-if deploy "$SCRIPT_DIR/configs/tmux/tmux.conf" "$HOME/.config/tmux/tmux.conf"; then
-    changes=$((changes + 1))
-fi
-
-# Neovim (LazyVim)
-mkdir -p "$HOME/.config/nvim/lua/config" "$HOME/.config/nvim/lua/plugins" "$HOME/.config/nvim/plugin/after"
-for f in init.lua lazy-lock.json lazyvim.json stylua.toml; do
-    if deploy "$SCRIPT_DIR/configs/nvim/$f" "$HOME/.config/nvim/$f"; then
-        changes=$((changes + 1))
-    fi
-done
-for dir in lua/config lua/plugins plugin/after; do
-    for src in "$SCRIPT_DIR/configs/nvim/$dir/"*; do
-        [[ -f "$src" ]] || continue
-        if deploy "$src" "$HOME/.config/nvim/$dir/$(basename "$src")"; then
-            changes=$((changes + 1))
-        fi
-    done
-done
-
-if [[ $changes -eq 0 ]]; then
-    skip "All config files already up to date"
-else
-    ok "$changes config files deployed/updated"
-fi
+unset module_id
 
 # ============================================================================
-# Step 5: Shell setup (zsh + oh-my-zsh + plugins + starship)
+# Finalize — theme + first color generation (runs after all modules so the
+# wallpapers and templates are guaranteed to be in place)
 # ============================================================================
 
-info "Step 5/7: Setting up shell..."
+finalize() {
+    local default_wallpaper="$HOME/Pictures/Wallpapers/Lofi_Cat.png"
 
-# Install oh-my-zsh if not present
-if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
-    info "Installing Oh My Zsh..."
-    if sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended; then
-        ok "Oh My Zsh installed"
-    else
-        err "Failed to install Oh My Zsh"
-    fi
-else
-    skip "Oh My Zsh already installed"
-fi
-
-# Install oh-my-zsh custom plugins (git-cloned, not available as pacman packages)
-ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-
-declare -A zsh_plugins=(
-    ["zsh-history-substring-search"]="https://github.com/zsh-users/zsh-history-substring-search"
-    ["you-should-use"]="https://github.com/MichaelAquilina/zsh-you-should-use"
-)
-
-for plugin in "${!zsh_plugins[@]}"; do
-    if [[ ! -d "$ZSH_CUSTOM/plugins/$plugin" ]]; then
-        if git clone "${zsh_plugins[$plugin]}" "$ZSH_CUSTOM/plugins/$plugin" &>/dev/null; then
-            ok "$plugin installed"
+    if [[ "$CDOTS_OS" == arch ]] && module_selected compositor-hyprland; then
+        local theme_name="klein-cosmic"
+        [[ -f "$SCRIPT_DIR/configs/omarchy/theme.name" ]] && theme_name="$(cat "$SCRIPT_DIR/configs/omarchy/theme.name")"
+        if [[ "$DRY_RUN" == 1 ]]; then
+            dry "Would apply omarchy theme: $theme_name"
+        elif command -v omarchy-theme-set &>/dev/null; then
+            omarchy-theme-set "$theme_name" 2>/dev/null || warn "Could not set theme (may need an active Hyprland session)"
         else
-            err "Failed to clone $plugin"
+            warn "omarchy-theme-set not found — set the theme manually after login"
         fi
-    else
-        skip "$plugin already installed"
+
+        if [[ -f "$default_wallpaper" ]]; then
+            local current_target
+            current_target=$(readlink -f "$HOME/.config/omarchy/current/background" 2>/dev/null || echo "")
+            if [[ "$current_target" == "$default_wallpaper" ]]; then
+                skip "Default wallpaper symlink already set"
+            elif [[ "$DRY_RUN" == 1 ]]; then
+                dry "Would set default wallpaper symlink to Lofi_Cat.png"
+            else
+                mkdir -p "$HOME/.config/omarchy/current"
+                ln -sf "$default_wallpaper" "$HOME/.config/omarchy/current/background"
+                ok "Default wallpaper set to Lofi_Cat.png"
+            fi
+        fi
     fi
-done
 
-# Note: zsh-autosuggestions and zsh-syntax-highlighting are installed as system
-# packages (pacman) and sourced from /usr/share/zsh/plugins/ in .zshrc
-
-# Deploy .zshrc only if different
-if [[ -f "$HOME/.zshrc" ]] && cmp -s "$SCRIPT_DIR/shell/.zshrc" "$HOME/.zshrc"; then
-    skip ".zshrc already up to date"
-else
-    if cp "$SCRIPT_DIR/shell/.zshrc" "$HOME/.zshrc"; then
-        ok ".zshrc deployed"
-    else
-        err "Failed to deploy .zshrc"
-    fi
-fi
-
-# Set zsh as default shell if not already
-if [[ "$SHELL" != *"zsh"* ]]; then
-    info "Setting zsh as default shell..."
-    if chsh -s "$(which zsh)"; then
-        ok "Default shell set to zsh"
-    else
-        warn "Failed to set zsh as default shell — run manually: chsh -s \$(which zsh)"
-    fi
-else
-    skip "zsh already default shell"
-fi
-
-# ============================================================================
-# Step 6: Systemd user services
-# ============================================================================
-
-info "Step 6/7: Setting up systemd services..."
-
-mkdir -p "$HOME/.config/systemd/user"
-
-svc_changes=0
-for f in wallpaper-rotate.timer wallpaper-rotate.service elephant.service; do
-    if [[ ! -f "$SCRIPT_DIR/systemd/$f" ]]; then
-        warn "Systemd unit file missing from repo: $f"
-        continue
-    fi
-    if [[ -f "$HOME/.config/systemd/user/$f" ]] && cmp -s "$SCRIPT_DIR/systemd/$f" "$HOME/.config/systemd/user/$f"; then
-        continue
-    fi
-    cp "$SCRIPT_DIR/systemd/$f" "$HOME/.config/systemd/user/"
-    svc_changes=$((svc_changes + 1))
-done
-
-# Walker auto-restart drop-in
-mkdir -p "$HOME/.config/systemd/user/app-walker@autostart.service.d"
-if [[ -f "$SCRIPT_DIR/systemd/app-walker-autostart.service.d/restart.conf" ]]; then
-    if ! cmp -s "$SCRIPT_DIR/systemd/app-walker-autostart.service.d/restart.conf" "$HOME/.config/systemd/user/app-walker@autostart.service.d/restart.conf" 2>/dev/null; then
-        cp "$SCRIPT_DIR/systemd/app-walker-autostart.service.d/restart.conf" "$HOME/.config/systemd/user/app-walker@autostart.service.d/"
-        svc_changes=$((svc_changes + 1))
-    fi
-fi
-
-if [[ $svc_changes -gt 0 ]]; then
-    if systemctl --user daemon-reload 2>/dev/null; then
-        ok "$svc_changes systemd unit files updated"
-    else
-        warn "Failed to reload systemd daemon — may need active session"
-    fi
-else
-    skip "Systemd unit files already up to date"
-fi
-
-# Enable wallpaper rotation timer if not already active
-if systemctl --user is-enabled wallpaper-rotate.timer &>/dev/null; then
-    skip "wallpaper-rotate.timer already enabled"
-else
-    if systemctl --user enable --now wallpaper-rotate.timer 2>/dev/null; then
-        ok "Wallpaper rotation enabled (every 20 minutes)"
-    else
-        warn "Could not enable wallpaper-rotate.timer — enable manually after login"
-    fi
-fi
-
-# Enable elephant audio service if not already enabled
-if systemctl --user is-enabled elephant.service &>/dev/null; then
-    skip "elephant.service already enabled"
-else
-    if systemctl --user enable elephant.service 2>/dev/null; then
-        ok "Elephant audio service enabled"
-    else
-        warn "Could not enable elephant.service — enable manually after login"
-    fi
-fi
-
-# Disable the systemd waybar service to prevent duplicate waybar instances
-if systemctl --user is-enabled waybar.service &>/dev/null 2>&1; then
-    systemctl --user disable waybar.service 2>/dev/null || true
-    ok "Disabled duplicate waybar.service"
-else
-    skip "waybar.service already disabled"
-fi
-
-# ============================================================================
-# Step 7: Apply theme and generate wallust colors
-# ============================================================================
-
-info "Step 7/7: Applying theme and wallust colors..."
-
-# Set the omarchy theme
-THEME_NAME="klein-cosmic"
-if [[ -f "$SCRIPT_DIR/configs/omarchy/theme.name" ]]; then
-    THEME_NAME="$(cat "$SCRIPT_DIR/configs/omarchy/theme.name")"
-fi
-
-if command -v omarchy-theme-set &>/dev/null; then
-    omarchy-theme-set "$THEME_NAME" 2>/dev/null || warn "Could not set theme (may need active Hyprland session)"
-else
-    warn "omarchy-theme-set not found, set theme manually after login"
-fi
-
-# Set the default wallpaper symlink
-DEFAULT_WALLPAPER="$HOME/Pictures/Wallpapers/Lofi_Cat.png"
-if [[ -f "$DEFAULT_WALLPAPER" ]]; then
-    mkdir -p "$HOME/.config/omarchy/current"
-    current_target=$(readlink -f "$HOME/.config/omarchy/current/background" 2>/dev/null || echo "")
-    if [[ "$current_target" == "$DEFAULT_WALLPAPER" ]]; then
-        skip "Default wallpaper symlink already set"
-    else
-        ln -sf "$DEFAULT_WALLPAPER" "$HOME/.config/omarchy/current/background"
-        ok "Default wallpaper set to Lofi_Cat.png"
-    fi
-else
-    warn "Default wallpaper not found at $DEFAULT_WALLPAPER — wallpaper copy may have failed"
-fi
-
-# Generate wallust colors from the wallpaper
-if command -v wallust &>/dev/null && [[ -f "$DEFAULT_WALLPAPER" ]]; then
-    if [[ -f "$HOME/.cache/wallust/nix.json" ]]; then
-        skip "Wallust colors already generated"
-    else
-        info "Generating wallust color scheme from wallpaper..."
-        mkdir -p "$HOME/.cache/wallust"
-        if wallust run "$DEFAULT_WALLPAPER" 2>/dev/null; then
-            ok "Wallust colors generated"
+    if module_selected theming-wallust; then
+        local wallpaper=""
+        [[ -f "$HOME/.cache/wallust/current_wallpaper" ]] && wallpaper="$(cat "$HOME/.cache/wallust/current_wallpaper")"
+        [[ -f "$wallpaper" ]] || wallpaper="$default_wallpaper"
+        if [[ "$DRY_RUN" == 1 && ! -f "$wallpaper" ]] && module_selected wallpapers; then
+            dry "Would generate wallust colors from the default wallpaper"
+        elif [[ ! -f "$wallpaper" ]]; then
+            warn "No wallpaper found to generate colors from — run: chill-wallpaper random"
+        elif [[ "$DRY_RUN" == 1 ]]; then
+            dry "Would generate wallust colors from $(basename "$wallpaper")"
+        elif command -v wallust &>/dev/null; then
+            info "Generating wallust colors from $(basename "$wallpaper")..."
+            if wallust run "$wallpaper" 2>/dev/null; then
+                ok "Wallust colors generated"
+            else
+                warn "wallust color generation failed — run manually: chill-wallpaper random"
+            fi
         else
-            warn "wallust color generation failed (may need display)"
+            warn "wallust not installed — colors will generate on the first wallpaper change"
         fi
     fi
-fi
+}
+
+echo ""
+info "── finalize ──"
+finalize
 
 # ============================================================================
 # Summary
@@ -543,31 +175,20 @@ fi
 
 echo ""
 echo "============================================"
-
-if [[ ${#ISSUES[@]} -eq 0 ]]; then
+if [[ "$DRY_RUN" == 1 ]]; then
+    echo -e "  ${YELLOW}Dry run complete${NC} — $CHANGES file change(s) pending, nothing written"
+elif [[ ${#ISSUES[@]} -eq 0 ]]; then
     echo -e "  ${GREEN}Installation complete!${NC}"
 else
     echo -e "  ${YELLOW}Installation complete with ${#ISSUES[@]} issue(s)${NC}"
 fi
-
 echo "============================================"
 echo ""
-echo "  What was set up:"
-echo "    - All packages (official + AUR)"
-echo "    - Hyprland + custom animations, blur, borders"
-echo "    - Waybar (Catppuccin Mocha theme + weather)"
-echo "    - Wallust auto-theming (colors from wallpaper)"
-echo "    - Kitty + Ghostty + Alacritty terminal configs"
-echo "    - Neovim (LazyVim + custom plugins)"
-echo "    - Tmux with custom keybindings"
-echo "    - Fastfetch with custom logo"
-echo "    - Btop system monitor"
-echo "    - Wallpaper rotation (every 20 min)"
-echo "    - Zsh + Oh My Zsh + Starship prompt"
-echo "    - Aliases, zoxide, mise, fzf integration"
-echo "    - CopyQ clipboard manager"
-echo "    - SwayOSD + Mako notifications"
-echo "    - Walker launcher with auto-restart"
+echo "  Modules installed: ${SELECTED_MODULES[*]}"
+if [[ "$SKIP_PACKAGES" != 1 && $((PKG_INSTALLED + PKG_FAILED + PKG_SKIPPED)) -gt 0 ]]; then
+    echo "  Packages: $PKG_INSTALLED installed, $PKG_SKIPPED already present, $PKG_FAILED failed"
+fi
+[[ -n "$BACKUP_DIR" ]] && echo "  Replaced files backed up to: $BACKUP_DIR"
 
 if [[ ${#ISSUES[@]} -gt 0 ]]; then
     echo ""
@@ -580,6 +201,9 @@ fi
 echo ""
 echo "  Next steps:"
 echo "    1. Log out and back in (or reboot)"
-echo "    2. If monitors look wrong, edit:"
-echo "       ~/.config/hypr/monitors.conf"
+if [[ "$CDOTS_OS" == arch ]]; then
+    echo "    2. If monitors look wrong, edit ~/.config/hypr/monitors.conf"
+else
+    echo "    2. Set a wallpaper + colors: ~/.local/bin/chill-wallpaper random"
+fi
 echo ""

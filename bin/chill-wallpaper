@@ -1,0 +1,184 @@
+#!/bin/bash
+# chill-wallpaper — set the wallpaper and re-theme everything with wallust.
+# Compositor-neutral: Hyprland (awww), niri (swww), swaybg fallback.
+#
+# Usage: chill-wallpaper <path>     set a specific wallpaper
+#        chill-wallpaper random     random wallpaper from ~/Pictures/Wallpapers
+#        chill-wallpaper restore    re-apply the last wallpaper (for startup)
+#        chill-wallpaper            GUI picker via waypaper
+
+WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
+CACHE_DIR="$HOME/.cache/wallust"
+STARSHIP_CONF="$HOME/.config/starship.toml"
+PALETTE_BEGIN='# >>> chill wallust palette >>>'
+PALETTE_END='# <<< chill wallust palette <<<'
+mkdir -p "$CACHE_DIR"
+
+notify() {
+    command -v notify-send &>/dev/null && notify-send "$@"
+}
+
+set_wallpaper_image() {
+    local wallpaper="$1"
+    pkill -x swaybg 2>/dev/null
+    if [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] && command -v awww &>/dev/null; then
+        if ! pgrep -x awww-daemon >/dev/null; then
+            awww-daemon &
+            disown
+            sleep 0.5
+        fi
+        awww img "$wallpaper" \
+            --transition-type grow \
+            --transition-pos "$(hyprctl cursorpos)" \
+            --transition-duration 1.5 \
+            --transition-fps 60 \
+            --transition-bezier 0.65,0,0.35,1
+    elif command -v swww &>/dev/null; then
+        if ! pgrep -x swww-daemon >/dev/null; then
+            swww-daemon &
+            disown
+            sleep 0.5
+        fi
+        swww img "$wallpaper" \
+            --transition-type grow \
+            --transition-pos center \
+            --transition-duration 1.5 \
+            --transition-fps 60 \
+            --transition-bezier .65,0,.35,1
+    elif command -v swaybg &>/dev/null; then
+        swaybg -i "$wallpaper" -m fill &
+        disown
+    else
+        notify "Wallpaper" "No wallpaper backend found (awww/swww/swaybg)" -u critical
+        echo "chill-wallpaper: no wallpaper backend found (awww/swww/swaybg)" >&2
+        return 1
+    fi
+}
+
+# Replace the marker-delimited wallust palette block in starship.toml.
+# Bounded and idempotent: everything outside the markers is untouched, and
+# running it twice with the same palette produces byte-identical output.
+splice_starship_palette() {
+    local palette="$CACHE_DIR/colors-starship.toml"
+    [[ -f "$palette" && -f "$STARSHIP_CONF" ]] || return 0
+    local tmp
+    tmp="$(mktemp "$STARSHIP_CONF.XXXXXX")" || return 1
+    awk -v b="$PALETTE_BEGIN" -v e="$PALETTE_END" '
+        $0 == b { inblock = 1; next }
+        $0 == e { inblock = 0; next }
+        inblock { next }
+        { lines[++n] = $0 }
+        END {
+            while (n > 0 && lines[n] == "") n--
+            for (i = 1; i <= n; i++) print lines[i]
+        }
+    ' "$STARSHIP_CONF" > "$tmp" || { rm -f "$tmp"; return 1; }
+    sed -i 's/^palette = .*/palette = "wallust"/' "$tmp"
+    printf '\n' >> "$tmp"
+    cat "$palette" >> "$tmp"
+    mv "$tmp" "$STARSHIP_CONF"
+}
+
+apply_theming() {
+    local wallpaper="$1"
+    command -v wallust &>/dev/null || return 0
+    wallust run "$wallpaper"
+
+    # Kitty reloads its config (and the wallust include) on SIGUSR1 —
+    # this recolors every open window live.
+    pkill -USR1 -x kitty 2>/dev/null
+
+    splice_starship_palette
+
+    # Mako re-reads its config (which includes the wallust colors)
+    if pgrep -x mako >/dev/null; then
+        makoctl reload 2>/dev/null
+    fi
+
+    # Waybar reloads config + stylesheet on SIGUSR2
+    if pgrep -x waybar >/dev/null; then
+        pkill -USR2 -x waybar 2>/dev/null
+    fi
+
+    # niri watches ~/.config/niri/wallust-colors.kdl and reloads on its own
+}
+
+finish_update() {
+    local wallpaper="$1"
+    # Keep the Omarchy background symlink in sync when Omarchy is present
+    if [[ -d "$HOME/.local/share/omarchy" ]]; then
+        mkdir -p "$HOME/.config/omarchy/current"
+        ln -sf "$wallpaper" "$HOME/.config/omarchy/current/background"
+    fi
+    echo "$wallpaper" > "$CACHE_DIR/current_wallpaper"
+    notify "Wallpaper" "Theme updated from wallpaper" -i "$wallpaper" -t 3000
+}
+
+set_wallpaper() {
+    local wallpaper="$1"
+    if [[ ! -f "$wallpaper" ]]; then
+        notify "Wallpaper" "File not found: $wallpaper" -u critical
+        echo "chill-wallpaper: file not found: $wallpaper" >&2
+        return 1
+    fi
+    set_wallpaper_image "$wallpaper" || return 1
+    apply_theming "$wallpaper"
+    finish_update "$wallpaper"
+}
+
+random_wallpaper() {
+    local wallpaper
+    wallpaper=$(find "$WALLPAPER_DIR" -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) | shuf -n 1)
+    if [[ -z "$wallpaper" ]]; then
+        notify "Wallpaper" "No wallpapers found in $WALLPAPER_DIR" -u critical
+        echo "chill-wallpaper: no wallpapers found in $WALLPAPER_DIR" >&2
+        exit 1
+    fi
+    set_wallpaper "$wallpaper"
+}
+
+current_wallpaper_from_backend() {
+    if command -v awww &>/dev/null && pgrep -x awww-daemon >/dev/null; then
+        awww query 2>/dev/null | head -1 | grep -oP 'image: \K.*'
+    elif command -v swww &>/dev/null && pgrep -x swww-daemon >/dev/null; then
+        swww query 2>/dev/null | head -1 | grep -oP 'image: \K.*'
+    fi
+}
+
+case "${1:-}" in
+    random)
+        random_wallpaper
+        ;;
+    restore)
+        wallpaper=""
+        [[ -f "$CACHE_DIR/current_wallpaper" ]] && wallpaper="$(cat "$CACHE_DIR/current_wallpaper")"
+        if [[ ! -f "$wallpaper" ]]; then
+            wallpaper="$(readlink -f "$HOME/.config/omarchy/current/background" 2>/dev/null)"
+        fi
+        if [[ -f "$wallpaper" ]]; then
+            set_wallpaper "$wallpaper"
+        else
+            random_wallpaper
+        fi
+        ;;
+    "")
+        waypaper_bin="$(command -v waypaper || echo "$HOME/.local/bin/waypaper")"
+        if [[ ! -x "$waypaper_bin" ]]; then
+            notify "Wallpaper" "waypaper not installed — picking a random wallpaper instead"
+            random_wallpaper
+            exit $?
+        fi
+        "$waypaper_bin" --folder "$WALLPAPER_DIR" 2>/dev/null
+        # Waypaper already set the wallpaper via awww/swww; learn which one
+        # it picked and apply the color theming on top.
+        sleep 1
+        wallpaper="$(current_wallpaper_from_backend)"
+        if [[ -n "$wallpaper" && -f "$wallpaper" ]]; then
+            apply_theming "$wallpaper"
+            finish_update "$wallpaper"
+        fi
+        ;;
+    *)
+        set_wallpaper "$1"
+        ;;
+esac

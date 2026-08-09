@@ -1,0 +1,8 @@
+// Wallust-generated niri colors — regenerated on every wallpaper change.
+// Included from config.kdl; later includes override earlier settings.
+layout {
+    border {
+        active-gradient from="{{color4}}" to="{{color12}}" angle=45
+        inactive-color "{{color0}}"
+    }
+}

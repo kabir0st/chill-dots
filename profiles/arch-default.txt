@@ -1,0 +1,19 @@
+# Default module set for Arch/Omarchy — reproduces the classic full install.
+compositor-hyprland
+theming-wallust
+wallpapers
+wallpaper-rotation
+wallpaper-picker
+terminal-kitty
+terminal-ghostty
+terminal-alacritty
+shell-zsh
+prompt-starship
+bar-waybar
+launcher-walker
+notif-mako
+osd-swayosd
+lock-idle
+tools-cli
+editor-nvim
+extras-arch

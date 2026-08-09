@@ -1,0 +1,10 @@
+// Chill-dots: wallpaper-derived niri colors.
+// This stub keeps the include valid before wallust first runs; wallust
+// overwrites this file on every wallpaper change (values below match the
+// PikaOS niri defaults, so nothing changes visually until then).
+layout {
+    border {
+        active-gradient from="#0DB7D4" to="#9778D0" angle=90
+        inactive-color "#04404A"
+    }
+}

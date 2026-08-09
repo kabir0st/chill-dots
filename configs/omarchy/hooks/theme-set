@@ -1,9 +1,10 @@
 #!/bin/bash
-# Generate vibrant kitty colors from the new theme's wallpaper
-# Runs after omarchy-theme-set / omarchy-theme-bg-next
+# Re-run wallpaper theming after omarchy-theme-set / omarchy-theme-bg-next
+# so wallust colors stay in sync with the new theme's wallpaper.
 
-# Small delay to let the wallpaper symlink update
+# Small delay to let the background symlink update
 sleep 0.5
-if command -v vibrant-kitty-colors &>/dev/null; then
-    vibrant-kitty-colors &
+wallpaper="$(readlink -f "$HOME/.config/omarchy/current/background" 2>/dev/null)"
+if [[ -f "$wallpaper" && -x "$HOME/.local/bin/chill-wallpaper" ]]; then
+    "$HOME/.local/bin/chill-wallpaper" "$wallpaper" &
 fi

@@ -3,3 +3,6 @@ include=~/.local/share/omarchy/default/mako/core.ini
 text-color=#d4e4f7
 border-color=#5ec4ff
 background-color=#0a0e1a
+
+# Wallust colors override the static ones above (regenerated per wallpaper)
+include=~/.config/mako/wallust-colors.conf

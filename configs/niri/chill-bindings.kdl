@@ -1,0 +1,6 @@
+// Chill-dots wallpaper keybinds — included from config.kdl.
+// binds sections merge across includes, so these are added to yours.
+binds {
+    Mod+Shift+R hotkey-overlay-title="Random wallpaper" { spawn "sh" "-c" "$HOME/.local/bin/chill-wallpaper random"; }
+    Mod+Shift+W hotkey-overlay-title="Pick wallpaper" { spawn "sh" "-c" "$HOME/.local/bin/chill-wallpaper"; }
+}

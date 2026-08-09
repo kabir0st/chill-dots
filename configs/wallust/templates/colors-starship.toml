@@ -1,4 +1,4 @@
-# Wallust-generated starship palette
+# >>> chill wallust palette >>>
 [palettes.wallust]
 surface = "{{color8}}"
 rosewater = "{{color9}}"
@@ -15,3 +15,4 @@ sky = "{{color14}}"
 sapphire = "{{color4}}"
 blue = "{{color12}}"
 lavender = "{{color7}}"
+# <<< chill wallust palette <<<

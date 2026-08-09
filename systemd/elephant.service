@@ -1,6 +1,5 @@
-
 [Unit]
-Description=Elephant
+Description=Elephant provider backend for Walker
 After=graphical-session.target
 
 [Service]
@@ -10,4 +9,3 @@ Restart=on-failure
 
 [Install]
 WantedBy=graphical-session.target
-							

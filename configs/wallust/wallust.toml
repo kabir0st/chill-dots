@@ -6,17 +6,17 @@ check_contrast = true
 threshold = 11
 
 [templates]
-# Hyprland colors
+# Hyprland colors (sourced by looknfeel.conf)
 hyprland = { template = "colors-hyprland.conf", target = "~/.config/hypr/wallust/colors-hyprland.conf" }
-# Waybar colors
+# niri border colors (included from config.kdl; niri live-reloads on change)
+niri = { template = "colors-niri.kdl", target = "~/.config/niri/wallust-colors.kdl" }
+# Waybar colors (imported by style.css)
 waybar = { template = "colors-waybar.css", target = "~/.config/waybar/wallust/colors-waybar.css" }
-# Kitty terminal colors
+# Kitty terminal colors (included by kitty.conf, reloaded via SIGUSR1)
 kitty = { template = "colors-kitty.conf", target = "~/.config/kitty/wallust-colors.conf" }
-# Mako notifications
+# Ghostty terminal colors (optional config-file include)
+ghostty = { template = "colors-ghostty.conf", target = "~/.config/ghostty/wallust-colors.conf" }
+# Mako notifications (included by the mako config)
 mako = { template = "colors-mako.conf", target = "~/.config/mako/wallust-colors.conf" }
-# Walker launcher
-walker = { template = "colors-walker.css", target = "~/.config/walker/themes/wallust.css" }
-# Starship prompt
+# Starship prompt (spliced into ~/.config/starship.toml by chill-wallpaper)
 starship = { template = "colors-starship.toml", target = "~/.cache/wallust/colors-starship.toml" }
-# Shell color variables
-shell = { template = "colors.sh", target = "~/.cache/wallust/colors.sh" }

@@ -103,82 +103,7 @@ format = "[$time]($style) "
 style = "fg:surface"
 time_format = "%H:%M"
 
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
-
-# Wallust-generated starship palette
+# >>> chill wallust palette >>>
 [palettes.wallust]
 surface = "#838A8A"
 rosewater = "#4A514F"
@@ -195,3 +120,4 @@ sky = "#899D9B"
 sapphire = "#58605E"
 blue = "#626D6A"
 lavender = "#BCC6C5"
+# <<< chill wallust palette <<<

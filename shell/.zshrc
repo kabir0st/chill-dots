@@ -33,16 +33,24 @@ plugins=(
 
 source $ZSH/oh-my-zsh.sh
 
-# ─── Environment (from Omarchy) ───────────────────────────────────────
+# ─── Environment ──────────────────────────────────────────────────────
 export SUDO_EDITOR="$EDITOR"
 export BAT_THEME=ansi
-export OMARCHY_PATH=$HOME/.local/share/omarchy
-export PATH=$OMARCHY_PATH/bin:$PATH:$HOME/.local/bin
+export PATH="$PATH:$HOME/.local/bin"
 
-# ROCm environment for AMD RX 6800 (gfx1030)
-export HSA_OVERRIDE_GFX_VERSION=10.3.0
-export HSA_ENABLE_SDMA=0
-export HIP_VISIBLE_DEVICES=0
+# Omarchy (Arch only) — skipped cleanly on other distros
+if [[ -d "$HOME/.local/share/omarchy" ]]; then
+  export OMARCHY_PATH=$HOME/.local/share/omarchy
+  export PATH=$OMARCHY_PATH/bin:$PATH
+fi
+
+# Debian/PikaOS ship bat and fd as batcat/fdfind
+if (( ! $+commands[bat] )) && (( $+commands[batcat] )); then
+  alias bat='batcat'
+fi
+if (( ! $+commands[fd] )) && (( $+commands[fdfind] )); then
+  alias fd='fdfind'
+fi
 
 # ─── History ──────────────────────────────────────────────────────────
 HISTSIZE=32768
@@ -66,7 +74,7 @@ zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"     # colored completion
 zstyle ':completion:*' group-name ''                        # group by category
 zstyle ':completion:*:descriptions' format '%F{yellow}── %d ──%f'
 
-# ─── Aliases (from Omarchy) ──────────────────────────────────────────
+# ─── Aliases ──────────────────────────────────────────────────────────
 # File system
 if command -v eza &> /dev/null; then
   alias ls='eza -lh --group-directories-first --icons=auto'
@@ -75,11 +83,19 @@ if command -v eza &> /dev/null; then
   alias lta='lt -a'
 fi
 
-if [[ "$TERM" == "xterm-kitty" ]]; then
-  alias ff="fzf --preview 'case \$(file --mime-type -b {}) in image/*) kitty icat --clear --transfer-mode=memory --stdin=no --place=\${FZF_PREVIEW_COLUMNS}x\${FZF_PREVIEW_LINES}@0x0 {} ;; *) bat --style=numbers --color=always {} ;; esac'"
+# fzf preview needs a real binary name (aliases don't expand inside it)
+_bat_bin="$(command -v bat || command -v batcat)"
+if [[ -n "$_bat_bin" ]]; then
+  _file_preview="$_bat_bin --style=numbers --color=always {}"
 else
-  alias ff="fzf --preview 'bat --style=numbers --color=always {}'"
+  _file_preview="cat {}"
 fi
+if [[ "$TERM" == "xterm-kitty" ]]; then
+  alias ff="fzf --preview 'case \$(file --mime-type -b {}) in image/*) kitty icat --clear --transfer-mode=memory --stdin=no --place=\${FZF_PREVIEW_COLUMNS}x\${FZF_PREVIEW_LINES}@0x0 {} ;; *) $_file_preview ;; esac'"
+else
+  alias ff="fzf --preview '$_file_preview'"
+fi
+unset _bat_bin _file_preview
 alias eff='$EDITOR "$(ff)"'
 sff() { if [ $# -eq 0 ]; then echo "Usage: sff <destination> (e.g. sff host:/tmp/)"; return 1; fi; local file; file=$(find . -type f -printf '%T@\t%p\n' | sort -rn | cut -f2- | ff) && [ -n "$file" ] && scp "$file" "$1"; }
 
@@ -125,11 +141,14 @@ alias gcm='git commit -m'
 alias gcam='git commit -a -m'
 alias gcad='git commit -a --amend'
 
-# ─── Source Omarchy bash functions (compatible with zsh) ─────────────
+# ─── Source Omarchy bash functions (Arch only, compatible with zsh) ──
 # Skip worktrees (conflicts with oh-my-zsh git 'ga' alias) — ported below
-for fn_file in $OMARCHY_PATH/default/bash/fns/*; do
-  [[ -f "$fn_file" && "$(basename "$fn_file")" != "worktrees" ]] && source "$fn_file"
-done
+if [[ -n "${OMARCHY_PATH:-}" && -d "$OMARCHY_PATH/default/bash/fns" ]]; then
+  for fn_file in "$OMARCHY_PATH"/default/bash/fns/*(N); do
+    [[ -f "$fn_file" && "$(basename "$fn_file")" != "worktrees" ]] && source "$fn_file"
+  done
+  unset fn_file
+fi
 
 # Worktree functions (ported from omarchy, renamed to avoid git plugin conflict)
 # Use wta/wtd instead of ga/gd (ga/gwta taken by oh-my-zsh git plugin)
@@ -142,7 +161,7 @@ wta() {
   local base="$(basename "$PWD")"
   local wt_path="../${base}--${branch}"
   git worktree add -b "$branch" "$wt_path"
-  mise trust "$wt_path"
+  command -v mise &> /dev/null && mise trust "$wt_path"
   cd "$wt_path"
 }
 
@@ -182,15 +201,25 @@ if command -v try &> /dev/null; then
   eval "$(SHELL=/bin/zsh command try init ~/Work/tries)"
 fi
 
-# fzf
+# fzf (Arch: /usr/share/fzf, Debian/PikaOS: /usr/share/doc/fzf/examples)
 if command -v fzf &> /dev/null; then
-  [[ -f /usr/share/fzf/completion.zsh ]] && source /usr/share/fzf/completion.zsh
-  [[ -f /usr/share/fzf/key-bindings.zsh ]] && source /usr/share/fzf/key-bindings.zsh
+  for _fzf_file in /usr/share/fzf/completion.zsh /usr/share/fzf/key-bindings.zsh \
+                   /usr/share/doc/fzf/examples/completion.zsh /usr/share/doc/fzf/examples/key-bindings.zsh; do
+    [[ -f "$_fzf_file" ]] && source "$_fzf_file"
+  done
+  unset _fzf_file
 fi
 
-# ─── System zsh plugins (from pacman) ────────────────────────────────
-source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh 2>/dev/null
-source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
+# ─── System zsh plugins (Arch and Debian package layouts) ────────────
+for _plugin_file in /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh \
+                    /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh; do
+  if [[ -f "$_plugin_file" ]]; then source "$_plugin_file"; break; fi
+done
+for _plugin_file in /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh \
+                    /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh; do
+  if [[ -f "$_plugin_file" ]]; then source "$_plugin_file"; break; fi
+done
+unset _plugin_file
 
 # Autosuggestion config
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#888888"
@@ -201,11 +230,18 @@ bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
 
 # ─── pyenv ────────────────────────────────────────────────────────────
-export PATH="$HOME/.pyenv/bin:$PATH"
+if [[ -d "$HOME/.pyenv/bin" ]]; then
+  export PATH="$HOME/.pyenv/bin:$PATH"
+fi
 if command -v pyenv &> /dev/null; then
   eval "$(pyenv init --path)"
   eval "$(pyenv virtualenv-init -)"
 fi
 
-# ─── Cargo/Rust ───────────────────────────────────────────────────────
-. "$HOME/.local/share/../bin/env" 2>/dev/null
+# ─── Cargo/uv env (if present) ───────────────────────────────────────
+[[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
+
+# ─── Machine-local overrides ─────────────────────────────────────────
+# Hardware-specific exports (e.g. ROCm HSA_OVERRIDE_GFX_VERSION), secrets,
+# and anything that shouldn't live in the dotfiles repo.
+[[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"

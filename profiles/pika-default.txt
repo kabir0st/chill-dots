@@ -1,0 +1,10 @@
+# Default module set for PikaOS + niri — keeps pikabar (bar, launcher, lock,
+# notifications) and ports the terminal, shell, wallpapers and dynamic theming.
+compositor-niri
+theming-wallust
+wallpapers
+wallpaper-rotation
+wallpaper-picker
+terminal-kitty
+shell-zsh
+prompt-starship
