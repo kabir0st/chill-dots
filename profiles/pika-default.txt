@@ -1,5 +1,7 @@
 # Default module set for PikaOS + niri — keeps pikabar (bar, launcher, lock,
 # notifications) and ports the terminal, shell, wallpapers and dynamic theming.
+# pikabar stays, but bar-pikabar restyles it: translucent, with semantic icon
+# colours that survive the wallpaper-driven theme regeneration.
 compositor-niri
 theming-wallust
 wallpapers
@@ -10,3 +12,4 @@ shell-zsh
 prompt-starship
 audio-easyeffects
 clipboard-cursor-clip
+bar-pikabar

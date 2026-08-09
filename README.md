@@ -41,7 +41,7 @@
 
 - **Auto-theming** — [wallust](https://codeberg.org/explosion-mental/wallust) extracts a 16-color palette from your wallpaper and applies it across the desktop in real-time: terminal, prompt, bar, notifications, and window borders (Hyprland *and* niri)
 - **Wallpaper rotation** — systemd timer swaps wallpapers every 20 minutes with smooth transitions ([awww](https://github.com/jbg/awww) on Arch, [swww](https://github.com/LGFae/swww) on PikaOS), re-theming everything automatically
-- **106 curated wallpapers** included out of the box
+- **89 curated wallpapers** included out of the box
 - **Two OSes, one repo** — the installer detects Arch or PikaOS and asks you to confirm, maps package names per distro, and adapts configs per compositor
 - **Pick what you install** — arrow-key installer (no dependencies — no gum, no whiptail) with presets, a component checklist, and a preview of exactly which packages get installed and which of your files get replaced
 - **Undo any run** — every run journals what it changed (files replaced *and* created, units enabled, plugins cloned, shell changed), so `./install.sh --rollback` puts it all back. Files you already had are never touched
@@ -163,6 +163,7 @@ Run `./install.sh --list-modules` for the live list. Defaults per OS:
 | terminal-ghostty / terminal-alacritty | on | off | omarchy imports handled per OS |
 | shell-zsh | on | on | Oh My Zsh + plugins; sets zsh as default shell |
 | prompt-starship | on | on | wallpaper-driven prompt palette |
+| bar-pikabar | — | on | restyles pikabar itself: translucent bar + semantic icon colors. Overlays ~10 QML files onto a fork of the installed pikabar — see notes |
 | bar-waybar | on | off | on PikaOS pikabar keeps the bar unless you switch |
 | launcher-walker | on | off | walker + elephant (PikaOS repos have both) |
 | notif-mako | on | off | **PikaOS:** conflicts with pikabar's notification service — see notes |
@@ -223,7 +224,8 @@ Templates live in `configs/wallust/templates/` — edit these to change how colo
 
 The PikaOS default profile deliberately **keeps pikabar** (bar, launcher `Mod+D`, lock screen, notifications, tray). What changes:
 
-- **Wallpaper rotation** — chill-dots' timer takes over; the installer sets `randomWallpaper: false` in `~/.config/pikabar/Settings.json` (backed up first). pikabar's own wallpaper-derived theme (`useWallpaperTheme`) is left on — check whether it follows externally-set swww wallpapers on your build; if not, its accent colors stay static while kitty/niri/starship follow the wallpaper.
+- **Wallpaper rotation** — chill-dots' timer takes over; the installer sets `randomWallpaper: false` in `~/.config/pikabar/Settings.json` (backed up first). pikabar's own wallpaper-derived theme (`useWallpaperTheme`) is left on, and it **does** follow wallpapers set externally by `chill-wallpaper`: `Services/WallpaperManager.qml` rewrites `Theme.json` and `ThemeLight.json` within seconds of the swww change, so the bar re-themes alongside kitty/niri/starship. The practical consequence is that **`Theme.json` is generated, not configuration** — anything hand-written there is overwritten at the next wallpaper change, which for the default 20-minute timer means very soon.
+- **Bar styling (`bar-pikabar`)** — because `Theme.json` is disposable, the bar's look lives in a QML overlay instead. `/usr/bin/pikabar` passes quickshell one whole tree (`~/.config/pikabar-quickshell` when present, otherwise `/usr/share/pikabar`) with no include or merge mechanism, so customising one file means owning all of them. The module seeds that fork from the *installed* pikabar, then copies in only the ~10 files chill-dots changes — a translucent bar (`Settings.barOpacity`, default `0.72`) with a hairline bottom border, and `Settings/IconPalette.qml`, a semantic status palette (battery green→red, wifi cyan→amber, volume violet) that the bar modules read from. Keeping the palette out of `Theme.json` is what makes it survive re-theming. Seeding from the live install rather than vendoring 4.9 MB of upstream QML means pikabar updates aren't frozen out; the flip side is that the overlay is patched against a specific version, recorded as `PIKABAR_OVERLAY_FOR` in the module, and a mismatch warns.
 - **Keybinds** — `Mod+Shift+R` (random wallpaper) and `Mod+Shift+W` (picker) are added via an included `chill-bindings.kdl`. `Mod+Shift+R` replaces niri's default `switch-preset-window-height`; delete the include line in `config.kdl` to undo.
 - **mako** — if you select it anyway, don't autostart it while pikabar runs: both claim `org.freedesktop.Notifications` on D-Bus.
 - **Fonts** — JetBrainsMono Nerd Font has no Debian package; the installer downloads it from the nerd-fonts release into `~/.local/share/fonts`.
@@ -239,7 +241,20 @@ Troubleshooting:
 - *`chsh` didn't stick* → run `chsh -s $(command -v zsh)` manually (needs your password)
 - *Wallpaper timer inactive* → `systemctl --user enable --now wallpaper-rotate.timer`
 - *Packages all failed* → check `~/.config-backup-<id>/packages.log`; the installer keeps the package manager's real output instead of discarding it
+- *Bar looks wrong after a pikabar update* → the overlay is patched against one upstream version; re-sync it (below), or `rm -rf ~/.config/pikabar-quickshell` to drop back to stock pikabar entirely
 - *Want the whole thing gone* → `./install.sh --rollback`
+
+### Re-syncing the pikabar overlay
+
+The `bar-pikabar` overlay is QML diffed against a specific pikabar release. When PikaOS ships a new one and the module warns about a version mismatch:
+
+```bash
+diff -ru /usr/share/pikabar configs/pikabar-quickshell   # what upstream changed under us
+```
+
+Only the ten overlaid files matter. For each one that upstream also touched, re-apply the chill-dots change on top of the new upstream file, then bump `PIKABAR_OVERLAY_FOR` in [`modules/49-bar-pikabar.sh`](modules/49-bar-pikabar.sh). `Settings/IconPalette.qml` is ours alone and never conflicts.
+
+The changes being carried are small and easy to re-apply by hand: an opacity-aware `color:` plus a hairline `Rectangle` in `Bar/Bar.qml`, one `property real barOpacity` in `Settings/Settings.qml`, and in each bar module a `statusColor` property sourced from `IconPalette` with a `Behavior on color` animation.
 
 ---
 
@@ -282,6 +297,7 @@ chill-dots/
 │   ├── hypr/               # Hyprland (+ hypridle.pika.conf variant)
 │   ├── niri/               # wallust color stub + wallpaper keybind include
 │   ├── wallust/            # theming engine + 7 color templates
+│   ├── pikabar-quickshell/ # QML overlay: translucent bar + IconPalette (PikaOS)
 │   ├── waybar/             # bar config + wallust-wired stylesheet + weather
 │   ├── kitty/              # terminal config + per-OS theme include
 │   ├── ghostty/ alacritty/ # alt terminals
@@ -295,7 +311,7 @@ chill-dots/
 ├── bin/                    # chill-wallpaper, chill-browser
 ├── shell/.zshrc            # single zsh config, guards for both distros
 ├── systemd/                # wallpaper rotation timer + services
-└── wallpapers/             # 106 curated wallpapers
+└── wallpapers/             # 89 curated wallpapers
 ```
 
 ---
