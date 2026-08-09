@@ -13,6 +13,10 @@ NC='\033[0m'
 ISSUES=()
 CHANGES=0
 
+# Package managers log here instead of /dev/null, so a failure can be explained
+# instead of just counted. Copied into the run directory at the end.
+PKG_LOG="${TMPDIR:-/tmp}/chill-dots-packages-$$.log"
+
 info()  { echo -e "${BLUE}[INFO]${NC} $1"; }
 ok()    { echo -e "${GREEN}[OK]${NC} $1"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; ISSUES+=("WARN: $1"); }
@@ -20,27 +24,36 @@ err()   { echo -e "${RED}[ERROR]${NC} $1"; ISSUES+=("ERROR: $1"); }
 skip()  { echo -e "${GRAY}[SKIP]${NC} $1"; }
 dry()   { echo -e "${YELLOW}[DRY]${NC} $1"; }
 
-# Per-run backup dir, created lazily the first time an existing file is
-# about to be replaced. Every run that changes files gets its own backup.
-BACKUP_DIR=""
+# Where a replaced file's pristine copy lives inside the run directory.
+backup_slot() {
+    local target="$1" rel="${1#"$HOME"/}"
+    [[ "$rel" == "$target" ]] && rel="${target#/}"
+    printf '%s' "$RUN_DIR/files/$rel"
+}
 
+# Save the original of a file we're about to change. First write wins: a file
+# touched twice in one run (config.kdl gets two includes appended) must keep
+# the copy from before the run, not from between the two edits.
 backup_path() {
     local target="$1"
     [[ -e "$target" || -L "$target" ]] || return 0
     [[ "$DRY_RUN" == 1 ]] && return 0
-    if [[ -z "$BACKUP_DIR" ]]; then
-        BACKUP_DIR="$HOME/.config-backup-$(date +%Y%m%d-%H%M%S)"
-        mkdir -p "$BACKUP_DIR"
-        info "Backing up replaced files to $BACKUP_DIR"
+    run_dir_init || return 0
+    local saved
+    saved="$(backup_slot "$target")"
+    [[ -e "$saved" || -L "$saved" ]] && return 0
+    mkdir -p "$(dirname "$saved")"
+    if cp -a "$target" "$saved" 2>/dev/null; then
+        journal replaced "$target"
+    else
+        warn "Could not back up $target — leaving it untouched is safer, skipping"
+        return 1
     fi
-    local rel="${target#"$HOME"/}"
-    [[ "$rel" == "$target" ]] && rel="${target#/}"
-    mkdir -p "$BACKUP_DIR/$(dirname "$rel")"
-    cp -a "$target" "$BACKUP_DIR/$rel" 2>/dev/null || true
 }
 
 ensure_dir() {
     [[ "$DRY_RUN" == 1 ]] && return 0
+    journal_dirs "$@"
     mkdir -p "$@"
 }
 
@@ -60,7 +73,14 @@ deploy() {
         CHANGES=$((CHANGES + 1))
         return 0
     fi
-    backup_path "$dest"
+    if [[ -e "$dest" || -L "$dest" ]]; then
+        backup_path "$dest" || return 1
+    else
+        # Directory first, file second: rollback replays the journal backwards,
+        # so this is the order that empties a directory before removing it.
+        journal_dirs "$(dirname "$dest")"
+        journal created "$dest"
+    fi
     mkdir -p "$(dirname "$dest")"
     cp "$src" "$dest"
     CHANGES=$((CHANGES + 1))

@@ -31,6 +31,7 @@ mod_wallpaper_rotation_post() {
     elif [[ "$DRY_RUN" == 1 ]]; then
         dry "Would enable wallpaper-rotate.timer"
     elif systemctl --user enable --now wallpaper-rotate.timer 2>/dev/null; then
+        journal unit-on wallpaper-rotate.timer
         ok "Wallpaper rotation enabled (every 20 minutes)"
     else
         warn "Could not enable wallpaper-rotate.timer — enable manually after login"

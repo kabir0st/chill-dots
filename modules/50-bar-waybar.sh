@@ -27,6 +27,7 @@ mod_bar_waybar_post() {
                 dry "Would disable duplicate waybar.service"
             else
                 systemctl --user disable waybar.service 2>/dev/null || true
+                journal unit-off waybar.service
                 ok "Disabled duplicate waybar.service"
             fi
         else

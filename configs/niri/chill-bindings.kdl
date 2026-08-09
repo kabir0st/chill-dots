@@ -1,6 +1,13 @@
-// Chill-dots wallpaper keybinds — included from config.kdl.
+// Chill-dots keybinds — included from config.kdl.
 // binds sections merge across includes, so these are added to yours.
+//
+// The Overview also opens with the top-left hot corner and a four-finger
+// touchpad swipe up; both are niri defaults, so there is nothing to configure.
+// niri cannot bind a bare Super — `Super+Super_L` fires on every Super
+// shortcut, and upstream treats it as a bug (niri-wm/niri#605).
 binds {
+    Mod+O repeat=false hotkey-overlay-title="Overview" { toggle-overview; }
+    Mod+Shift+Return hotkey-overlay-title="Browser" { spawn "sh" "-c" "$HOME/.local/bin/chill-browser"; }
     Mod+Shift+R hotkey-overlay-title="Random wallpaper" { spawn "sh" "-c" "$HOME/.local/bin/chill-wallpaper random"; }
     Mod+Shift+W hotkey-overlay-title="Pick wallpaper" { spawn "sh" "-c" "$HOME/.local/bin/chill-wallpaper"; }
 }

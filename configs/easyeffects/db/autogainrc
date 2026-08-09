@@ -1,0 +1,5 @@
+[soe][Autogain#0]
+bypass=true
+maximumHistory=10
+silenceThreshold=-50
+target=-20

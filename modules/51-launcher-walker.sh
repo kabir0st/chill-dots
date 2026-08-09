@@ -39,6 +39,7 @@ mod_launcher_walker_post() {
     elif [[ "$DRY_RUN" == 1 ]]; then
         dry "Would enable elephant.service"
     elif systemctl --user enable elephant.service 2>/dev/null; then
+        journal unit-on elephant.service
         ok "Elephant service enabled"
     else
         warn "Could not enable elephant.service — enable manually after login"

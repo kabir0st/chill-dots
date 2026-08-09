@@ -14,6 +14,9 @@ mod_wallpapers_deploy() {
         elif [[ "$DRY_RUN" == 1 ]]; then
             copied=$((copied + 1))
         elif cp -- "$src" "$dest"; then
+            # Journalled individually: rollback then removes exactly the ones we
+            # added and never a wallpaper that was already yours.
+            journal created "$dest"
             copied=$((copied + 1))
         else
             warn "Failed to copy wallpaper: $filename"

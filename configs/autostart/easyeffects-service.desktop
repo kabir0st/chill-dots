@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Easy Effects
+Comment=Easy Effects Service
+Exec=flatpak run com.github.wwmm.easyeffects --gapplication-service
+Icon=com.github.wwmm.easyeffects
+StartupNotify=false
+Terminal=false
+Type=Application
+X-GNOME-Autostart-enabled=true

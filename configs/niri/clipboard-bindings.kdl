@@ -1,0 +1,6 @@
+// cursor-clip — Windows-style clipboard history (Mod+V, like Win+V).
+// The daemon is started from config.kdl via spawn-at-startup.
+// binds sections merge across includes, so this is added to yours.
+binds {
+    Mod+V hotkey-overlay-title="Clipboard history" { spawn "sh" "-c" "$HOME/.local/bin/cursor-clip"; }
+}
