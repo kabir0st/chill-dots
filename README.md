@@ -42,8 +42,8 @@
 - **Auto-theming** — [wallust](https://codeberg.org/explosion-mental/wallust) extracts a 16-color palette from your wallpaper and applies it across the desktop in real-time: terminal, prompt, bar, notifications, and window borders (Hyprland *and* niri)
 - **Wallpaper rotation** — systemd timer swaps wallpapers every 20 minutes with smooth transitions ([awww](https://github.com/jbg/awww) on Arch, [swww](https://github.com/LGFae/swww) on PikaOS), re-theming everything automatically
 - **106 curated wallpapers** included out of the box
-- **Two OSes, one repo** — the installer detects Arch or PikaOS (override with `--os`), maps package names per distro, and adapts configs per compositor
-- **Pick what you install** — interactive module selection with a preview of exactly which packages get installed and which of your files get replaced
+- **Two OSes, one repo** — the installer detects Arch or PikaOS and asks you to confirm, maps package names per distro, and adapts configs per compositor
+- **Pick what you install** — arrow-key installer (no dependencies — no gum, no whiptail) with presets, a component checklist, and a preview of exactly which packages get installed and which of your files get replaced
 - **Per-run backups** — every file the installer replaces is copied to `~/.config-backup-<timestamp>/` first, on every run
 - **Live terminal recolor** — kitty windows change colors in place on every wallpaper change (config reload via SIGUSR1)
 - **Weather in your bar** — live weather module in [Waybar](https://github.com/Alexays/Waybar) (Arch default)
@@ -103,14 +103,16 @@ chmod +x install.sh
 ./install.sh
 ```
 
-The installer:
+The installer walks you through it:
 
-1. Detects your OS (override with `--os arch|pika`)
-2. Lets you pick modules interactively (gum checklist if available, plain menu otherwise)
-3. Shows which packages will be installed and which existing files will be replaced
+1. **Which system?** — Arch or PikaOS, with the detected one preselected (`--os arch|pika` skips the prompt)
+2. **What do you want?** — *Recommended* (the OS default set), *Everything*, *Custom* (component checklist), or *Configs only* (no packages)
+3. Shows which packages will be installed and which existing files will be replaced, then asks to proceed
 4. Backs up every replaced file to `~/.config-backup-<timestamp>/` — on every run
 5. Installs packages (pacman/yay on Arch, pikman/apt on PikaOS), deploys configs, enables services
 6. Generates the initial wallust color scheme
+
+The menus are plain bash — nothing to install first. `↑↓` move, `space` toggles, `a`/`n`/`d` select all/none/defaults, `enter` confirms, `q` cancels. Terminals that can't do arrow keys get a numbered prompt instead.
 
 Useful flags:
 
@@ -120,6 +122,7 @@ Useful flags:
 ./install.sh --non-interactive --profile pika-default  # scripted install with defaults
 ./install.sh --modules terminal-kitty,shell-zsh      # install exactly these
 ./install.sh --skip-packages                         # configs only
+./install.sh --all                                   # every module available on this OS
 ```
 
 After installation, **log out and back in** (or reboot).
@@ -236,7 +239,7 @@ Full Arch bindings: `configs/hypr/bindings.conf`. PikaOS additions: `configs/nir
 ```
 chill-dots/
 ├── install.sh              # Interactive multi-OS installer
-├── lib/                    # deploy/backup/dry-run, OS dispatch, UI, module registry
+├── lib/                    # deploy/backup/dry-run, OS dispatch, module registry, arrow-key TUI
 ├── os/                     # arch.sh (pacman/yay), pika.sh (pikman/apt, pipx, nerd font)
 ├── modules/                # one file per selectable component
 ├── profiles/               # arch-default.txt, pika-default.txt
@@ -260,8 +263,6 @@ chill-dots/
 ```
 
 ---
-
-<sup>**AMD GPU users:** for ROCm on an RX 6800 (RDNA2), see the [ROCm setup guide](rocm/) — put the `HSA_*` exports in `~/.zshrc.local`.</sup>
 
 <p align="center">
   Built on <a href="https://hyprland.org/">Hyprland</a> + <a href="https://omarchy.dev/">Omarchy</a> on Arch, <a href="https://github.com/niri-wm/niri">niri</a> + pikabar on PikaOS, themed by <a href="https://codeberg.org/explosion-mental/wallust">wallust</a>

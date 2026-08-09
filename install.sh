@@ -2,26 +2,9 @@
 # ============================================================================
 # Chill Dots installer — Arch/Omarchy (Hyprland) and PikaOS (niri)
 #
-# Interactive by default: pick the components you want, see exactly which
-# packages get installed and which files get replaced (with per-run backups)
-# before anything happens.
-#
-# Usage:
-#   ./install.sh                       interactive install (auto-detects OS)
-#   ./install.sh --list-modules        show available components for this OS
-#   ./install.sh --dry-run             show what would change, write nothing
-#   ./install.sh --non-interactive --profile pika-default
-#   ./install.sh --os arch --modules terminal-kitty,shell-zsh
-#
-# Options:
-#   --os arch|pika       Override OS detection
-#   --profile NAME       Use a module set from profiles/NAME.txt
-#   --modules a,b,c      Install exactly these modules
-#   --all                Install every module available on this OS
-#   --non-interactive    No prompts; defaults used unless told otherwise
-#   --dry-run            Print planned actions without changing anything
-#   --skip-packages      Skip all package installation
-#   --list-modules       List modules for this OS and exit
+# Interactive by default: confirm the OS, pick a preset (or hand-pick the
+# components), then see exactly which packages get installed and which files
+# get replaced — with per-run backups — before anything happens.
 #
 # Safe to re-run: every step checks actual state before acting.
 # ============================================================================
@@ -40,7 +23,30 @@ OS_OVERRIDE=""
 LIST_MODULES=0
 
 usage() {
-    sed -n '2,26p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    cat <<'EOF'
+Chill Dots installer — Arch/Omarchy (Hyprland) and PikaOS (niri)
+
+Usage:
+  ./install.sh                       interactive install (OS detected, confirmed on screen)
+  ./install.sh --list-modules        show available components for this OS
+  ./install.sh --dry-run             show what would change, write nothing
+  ./install.sh --non-interactive --profile pika-default
+  ./install.sh --os arch --modules terminal-kitty,shell-zsh
+
+Options:
+  --os arch|pika       Skip the OS prompt and use this one
+  --profile NAME       Use a module set from profiles/NAME.txt
+  --modules a,b,c      Install exactly these modules
+  --all                Install every module available on this OS
+  --non-interactive    No prompts; defaults used unless told otherwise
+  --dry-run            Print planned actions without changing anything
+  --skip-packages      Skip all package installation
+  --list-modules       List modules for this OS and exit
+  -h, --help           Show this help
+
+Interactive keys: ↑↓ move · space toggle · enter confirm · q cancel
+(a = all, n = none, d = defaults in the component checklist)
+EOF
 }
 
 while [[ $# -gt 0 ]]; do
@@ -67,6 +73,8 @@ source "$SCRIPT_DIR/lib/core.sh"
 source "$SCRIPT_DIR/lib/os.sh"
 # shellcheck source=lib/registry.sh
 source "$SCRIPT_DIR/lib/registry.sh"
+# shellcheck source=lib/tui.sh
+source "$SCRIPT_DIR/lib/tui.sh"
 # shellcheck source=lib/ui.sh
 source "$SCRIPT_DIR/lib/ui.sh"
 # shellcheck source=os/arch.sh
@@ -83,16 +91,18 @@ unset module_file
 detect_os
 
 if [[ "$LIST_MODULES" == 1 ]]; then
+    choose_os_auto
     list_modules
     exit 0
 fi
 
 echo ""
 echo "============================================"
-echo "  Chill Dots installer  ($CDOTS_OS)"
+echo "  Chill Dots installer"
 [[ "$DRY_RUN" == 1 ]] && echo "  DRY RUN — nothing will be changed"
 echo "============================================"
 
+choose_os
 resolve_selection
 
 case "$CDOTS_OS" in

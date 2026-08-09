@@ -1,36 +1,43 @@
 #!/bin/bash
 # lib/os.sh — OS detection and package-manager dispatch.
 
-CDOTS_OS=""
+CDOTS_OS=""           # the OS being installed for — set by detect_os/choose_os
+CDOTS_OS_DETECTED=""  # what /etc/os-release looks like, "" when unrecognized
+CDOTS_OS_PRETTY=""    # e.g. "PikaOS 4", for the OS picker
 
+# Fills CDOTS_OS_DETECTED (and CDOTS_OS when --os was given). Never exits:
+# an unrecognized system is resolved later by choose_os, interactively when
+# possible so the user can just pick.
 detect_os() {
+    if [[ -r /etc/os-release ]]; then
+        local id id_like
+        id="$(. /etc/os-release && echo "${ID:-}")"
+        id_like="$(. /etc/os-release && echo "${ID_LIKE:-}")"
+        CDOTS_OS_PRETTY="$(. /etc/os-release && echo "${PRETTY_NAME:-${NAME:-}}")"
+        case "$id" in
+            arch) CDOTS_OS_DETECTED=arch ;;
+            pika) CDOTS_OS_DETECTED=pika ;;
+            *)
+                case " $id_like " in
+                    *" arch "*)   CDOTS_OS_DETECTED=arch ;;
+                    *" debian "*) CDOTS_OS_DETECTED=pika ;;
+                esac ;;
+        esac
+    fi
     if [[ -n "$OS_OVERRIDE" ]]; then
         case "$OS_OVERRIDE" in
             arch|pika) CDOTS_OS="$OS_OVERRIDE" ;;
             *) err "Invalid --os value: $OS_OVERRIDE (expected arch or pika)"; exit 1 ;;
         esac
-        info "OS forced via --os: $CDOTS_OS"
-        return
     fi
-    if [[ -r /etc/os-release ]]; then
-        local id id_like
-        id="$(. /etc/os-release && echo "${ID:-}")"
-        id_like="$(. /etc/os-release && echo "${ID_LIKE:-}")"
-        case "$id" in
-            arch) CDOTS_OS=arch ;;
-            pika) CDOTS_OS=pika ;;
-            *)
-                case " $id_like " in
-                    *" arch "*)   CDOTS_OS=arch ;;
-                    *" debian "*) CDOTS_OS=pika ;;
-                esac ;;
-        esac
-    fi
-    if [[ "$CDOTS_OS" != "arch" && "$CDOTS_OS" != "pika" ]]; then
-        err "Could not detect a supported OS from /etc/os-release. Re-run with --os arch or --os pika."
-        exit 1
-    fi
-    info "Detected OS: $CDOTS_OS"
+}
+
+os_label() {
+    case "$1" in
+        arch) echo "Arch Linux" ;;
+        pika) echo "PikaOS / Debian" ;;
+        *)    echo "$1" ;;
+    esac
 }
 
 pkg_is_installed() {
