@@ -31,8 +31,16 @@ pkg_install_many_pika() {
 
 NERD_FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip"
 
+# NB: never end one of these pipes with `grep -q`. It exits at the first match,
+# fc-list upstream takes a SIGPIPE, and `set -o pipefail` turns the resulting
+# 141 into a failure — so the check reports "not installed" precisely when the
+# font IS installed. Plain `grep >/dev/null` drains its input and stays honest.
+have_nerd_font() {
+    fc-list 2>/dev/null | grep -i "JetBrainsMono Nerd Font" >/dev/null
+}
+
 pika_install_nerd_font() {
-    if fc-list 2>/dev/null | grep -qi "JetBrainsMono Nerd Font"; then
+    if have_nerd_font; then
         skip "JetBrainsMono Nerd Font already installed"
         return 0
     fi
@@ -52,7 +60,7 @@ pika_install_nerd_font() {
         # per-directory refresh leaves fc-list reading the stale global cache,
         # which used to make a perfectly good install report failure.
         fc-cache -f "$HOME/.local/share/fonts" >/dev/null 2>&1 || fc-cache -f >/dev/null 2>&1 || true
-        if fc-list 2>/dev/null | grep -qi "JetBrainsMono Nerd Font"; then
+        if have_nerd_font; then
             ok "JetBrainsMono Nerd Font installed to ~/.local/share/fonts"
         elif compgen -G "$fontdir/*.ttf" >/dev/null; then
             ok "JetBrainsMono Nerd Font installed to $fontdir (fontconfig will pick it up at next login)"

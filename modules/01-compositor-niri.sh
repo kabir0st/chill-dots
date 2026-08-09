@@ -25,21 +25,65 @@ mod_compositor_niri_deploy() {
 
     niri_add_include "wallust-colors.kdl"
 
-    # Wallpaper keybinds. Binds merge positionally too, so a bind defined in a
-    # later include replaces the same chord from the main config (verified with
+    # Keybinds. Binds merge positionally too, so a bind defined in a later
+    # include replaces the same chord from the main config (verified with
     # niri validate). Flag any takeover so it isn't a surprise.
-    if grep -qE '^[[:space:]]*Mod\+Shift\+(R|W)([[:space:]]|\{|$)' "$NIRI_CONFIG"; then
-        info "Mod+Shift+R/W were bound in config.kdl — the chill-dots wallpaper binds take over (remove the chill-bindings.kdl include to undo)"
+    local taken=()
+    local chord
+    for chord in 'Mod\+Shift\+R' 'Mod\+Shift\+W' 'Mod\+Shift\+Return' 'Mod\+O'; do
+        if grep -qE "^[[:space:]]*${chord}([[:space:]]|\{|$)" "$NIRI_CONFIG"; then
+            taken+=("$(echo "$chord" | sed 's/\\//g')")
+        fi
+    done
+    if [[ ${#taken[@]} -gt 0 ]]; then
+        info "${taken[*]} already bound in config.kdl — the chill-dots binds take over (remove the chill-bindings.kdl include to undo)"
     fi
+    # The browser bind resolves your default browser at run time.
+    deploy_exec "$SCRIPT_DIR/bin/chill-browser" "$HOME/.local/bin/chill-browser"
     deploy "$SCRIPT_DIR/configs/niri/chill-bindings.kdl" "$HOME/.config/niri/chill-bindings.kdl"
     niri_add_include "chill-bindings.kdl"
+}
+
+# Rewrite config.kdl through a filter (stdin -> stdout), then let niri check
+# the result and put the original back if it complains. The pre-run copy also
+# goes to the run directory, so `--rollback` undoes the edit later.
+# Used by this module and by the clipboard module.
+niri_safe_edit() {
+    local description="$1" filter="$2" saved rc=0
+    [[ -f "$NIRI_CONFIG" ]] || return 1
+    if [[ "$DRY_RUN" == 1 ]]; then
+        dry "Would $description"
+        CHANGES=$((CHANGES + 1))
+        return 0
+    fi
+    backup_path "$NIRI_CONFIG" || return 1
+    saved="$(mktemp)" || { err "mktemp failed"; return 1; }
+    cp "$NIRI_CONFIG" "$saved"
+    if ! "$filter" < "$saved" > "$NIRI_CONFIG"; then
+        cp "$saved" "$NIRI_CONFIG"
+        err "Failed to $description — config.kdl left unchanged"
+        rc=1
+    elif command -v niri &>/dev/null && ! niri validate -c "$NIRI_CONFIG" &>/dev/null; then
+        cp "$saved" "$NIRI_CONFIG"
+        err "niri rejected config.kdl after '$description' — change rolled back"
+        rc=1
+    else
+        ok "$description"
+        CHANGES=$((CHANGES + 1))
+    fi
+    rm -f "$saved"
+    return $rc
 }
 
 # Append `include "<file>"` at the end of config.kdl, validate, roll back on
 # rejection. Idempotent: skipped when the include is already there.
 niri_add_include() {
     local name="$1"
-    if grep -qF "$name" "$NIRI_CONFIG"; then
+    # Match the include directive itself, not the filename anywhere in the
+    # file: a comment mentioning the file (the clipboard module writes one)
+    # would otherwise look like the include is already there, and the real
+    # include would never be added.
+    if grep -qE "^[[:space:]]*include[[:space:]]+\"$name\"" "$NIRI_CONFIG"; then
         skip "config.kdl already includes $name"
         return 0
     fi

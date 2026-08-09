@@ -65,6 +65,7 @@
 | OSD | [SwayOSD](https://github.com/ErikReider/SwayOSD) | ✓ | optional |
 | Lock / Idle | [Hyprlock](https://github.com/hyprwm/hyprlock) + [Hypridle](https://github.com/hyprwm/hypridle) | ✓ | optional — pikabar-lock stays |
 | Sound | [EasyEffects](https://github.com/wwmm/easyeffects) EQ + Dolby convolver presets, PipeWire tweaks | optional | ✓ |
+| Clipboard history | [cursor-clip](https://github.com/Sirulex/cursor-clip) popup on `Mod+V` | — | ✓ |
 
 <details>
 <summary><strong>Full Arch package list (official + AUR)</strong></summary>
@@ -168,6 +169,7 @@ Run `./install.sh --list-modules` for the live list. Defaults per OS:
 | osd-swayosd | on | off | |
 | lock-idle | on | off | **PikaOS:** deploys a niri-adapted hypridle that keeps `pikabar-lock` |
 | audio-easyeffects | off | on | EasyEffects EQ + Dolby convolver presets, PipeWire no-suspend rule |
+| clipboard-cursor-clip | — | on | Win+V-style clipboard history on `Mod+V` (cursor-clip); moves niri's floating toggle to `Mod+Ctrl+V` |
 | tools-cli | on | off | btop, tmux, lazygit, fastfetch, gum |
 | editor-nvim | on | off | LazyVim setup |
 | extras-arch | on | — | the full Arch package lists |
@@ -228,6 +230,7 @@ The PikaOS default profile deliberately **keeps pikabar** (bar, launcher `Mod+D`
 - **waypaper** — installed via `pipx install --system-site-packages waypaper`; make sure `~/.local/bin` is on your PATH (the shipped `.zshrc` does this).
 - **bat/fd** — Debian names them `batcat`/`fdfind`; the shipped `.zshrc` aliases them automatically.
 - **Packages go through `apt`, not `pikman`** — despite the name, `pikman` is PikaOS's *container* package manager (it has `init`/`enter`/`run` subcommands). `pikman install zsh` installs into a managed container, not onto the host, and fails outright when no container exists.
+- **Clipboard history** — `clipboard-cursor-clip` gives you the Win+V habit on `Mod+V`. There's no Debian package, so the installer downloads the [cursor-clip](https://github.com/Sirulex/cursor-clip) release binary for your architecture into `~/.local/bin` and **verifies its published SHA-256** before installing it. It makes three separate edits to `config.kdl`, each checked with `niri validate` and reverted if niri objects: autostart the daemon, add the keybind include, and move niri's stock `Mod+V` (toggle floating) to `Mod+Ctrl+V`. History lives in an encrypted database whose key is in your login keyring; settings are in `~/.config/cursor-clip/config.toml`.
 - **Sound** — the `audio-easyeffects` module ships the EasyEffects profile (equalizer, Dolby convolver impulse responses, limiter, autogain, multiband compressor, bass enhancer), plus a WirePlumber rule that stops the analog speakers from suspending between sounds. EasyEffects is the **Flatpak** build here, so its config lives in `~/.var/app/com.github.wwmm.easyeffects/`, not `~/.config/easyeffects`; the module targets whichever layout your install uses. The bundled autoload rule is bound to this laptop's output sink — on other hardware the presets are still installed, you just pick one manually in the GUI.
 
 Troubleshooting:
@@ -245,14 +248,21 @@ Troubleshooting:
 | Key | Arch (Hyprland) | PikaOS (niri) |
 |-----|------------------|----------------|
 | `Super + Enter` | Kitty | Kitty (pika default) |
+| `Super + Shift + Enter` | Browser | Browser (your XDG default, via `chill-browser`) |
+| `Super + O` | — | Overview |
 | `Super + Shift + R` | Random wallpaper | Random wallpaper |
 | `Super + Shift + W` | Wallpaper picker | Wallpaper picker |
 | `Super + Alt + Enter` | Tmux session | — |
 | `Super + Shift + S` | Screenshot (satty) | niri native (`Print`) |
-| `Super + V` | Clipboard (CopyQ) | — |
+| `Super + V` | Clipboard (CopyQ) | Clipboard history (cursor-clip) |
+| `Super + Ctrl + V` | — | Toggle floating window (moved from `Mod+V`) |
 | `Super + D` | — | pikabar launcher |
 
-Full Arch bindings: `configs/hypr/bindings.conf`. PikaOS additions: `configs/niri/chill-bindings.kdl`.
+Full Arch bindings: `configs/hypr/bindings.conf`. PikaOS additions: `configs/niri/chill-bindings.kdl` and `configs/niri/clipboard-bindings.kdl`.
+
+Inside the clipboard popup: `Enter` paste · `↑↓`/`j k` navigate · `/` search · `P` pin · `Delete` remove · `Esc` close.
+
+The niri **Overview** also opens from the top-left hot corner or a four-finger touchpad swipe up — both are niri defaults, so chill-dots doesn't touch your `gestures` config. There is deliberately no bare-`Super` binding: niri can't bind a lone modifier, and the `Super+Super_L` trick fires on *every* Super shortcut (`Mod+Return`, `Mod+V`, …), which upstream tracks as a bug ([niri-wm/niri#605](https://github.com/niri-wm/niri/issues/605)).
 
 ---
 
@@ -276,11 +286,13 @@ chill-dots/
 │   ├── kitty/              # terminal config + per-OS theme include
 │   ├── ghostty/ alacritty/ # alt terminals
 │   ├── mako/ walker/ swayosd/ waypaper/
+│   ├── cursor-clip/        # clipboard history settings (PikaOS)
 │   ├── easyeffects/        # EQ/convolver presets + impulse responses (PikaOS)
 │   ├── wireplumber/        # speaker no-suspend rule
 │   ├── starship/           # prompt (wallust palette between markers)
 │   ├── fastfetch/          # + config.pika.jsonc (no omarchy commands)
 │   └── omarchy/            # theme hooks (Arch only)
+├── bin/                    # chill-wallpaper, chill-browser
 ├── shell/.zshrc            # single zsh config, guards for both distros
 ├── systemd/                # wallpaper rotation timer + services
 └── wallpapers/             # 106 curated wallpapers

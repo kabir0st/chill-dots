@@ -122,7 +122,9 @@ mod_audio_easyeffects_post() {
     # On any other machine the autoload rule simply never fires, which looks
     # like "the presets did nothing" — so say so up front.
     if [[ -n "$sink" && "$DRY_RUN" != 1 ]]; then
-        if command -v pactl &>/dev/null && ! pactl list short sinks 2>/dev/null | grep -qF "$sink"; then
+        # `grep -q` here would SIGPIPE pactl and, under pipefail, warn every
+        # time — including when the sink is present. Drain the pipe instead.
+        if command -v pactl &>/dev/null && ! pactl list short sinks 2>/dev/null | grep -F "$sink" >/dev/null; then
             warn "This profile autoloads for the sink '$sink', which isn't on this machine — open EasyEffects and pick the preset for your own output device"
         fi
     fi

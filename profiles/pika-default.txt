@@ -9,3 +9,4 @@ terminal-kitty
 shell-zsh
 prompt-starship
 audio-easyeffects
+clipboard-cursor-clip
