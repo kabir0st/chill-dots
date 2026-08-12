@@ -3,6 +3,6 @@
 layout {
     border {
         active-gradient from="{{color4}}" to="{{color12}}" angle=45
-        inactive-color "{{color0}}"
+        inactive-color "{{color0 | darken(0.4)}}"
     }
 }

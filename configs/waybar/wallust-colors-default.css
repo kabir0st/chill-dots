@@ -1,8 +1,8 @@
 /* Fallback palette until wallust first runs (Catppuccin Mocha values).
  * Overwritten in place by wallust at ~/.config/waybar/wallust/colors-waybar.css */
-@define-color wallust_background alpha(#1e1e2e, 0.85);
+@define-color wallust_background alpha(#0d0d15, 0.97);
 @define-color wallust_foreground #cdd6f4;
-@define-color wallust_color0 #181825;
+@define-color wallust_color0 #0e0e16;
 @define-color wallust_color1 #f38ba8;
 @define-color wallust_color2 #a6e3a1;
 @define-color wallust_color3 #fab387;
