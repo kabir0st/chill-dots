@@ -5,6 +5,6 @@
 layout {
     border {
         active-gradient from="#0DB7D4" to="#9778D0" angle=90
-        inactive-color "#04404A"
+        inactive-color "#02262C"
     }
 }
