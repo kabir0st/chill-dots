@@ -48,14 +48,13 @@ mod_audio_easyeffects_packages() {
     esac
 }
 
-# The autoload rule is named after the PipeWire sink it applies to, which is
-# how we know which device this profile was captured on.
-ee_target_sink() {
+# Each autoload rule is named after the PipeWire sink it applies to, which is
+# how we know which devices this profile was captured on.
+ee_target_sinks() {
     local f
     for f in "$SCRIPT_DIR/configs/easyeffects/data/autoload/output/"*.json; do
         [[ -f "$f" ]] || continue
         basename "$f" | sed 's/:.*//'
-        return 0
     done
 }
 
@@ -99,8 +98,8 @@ render_easyeffects_autostart() {
 }
 
 mod_audio_easyeffects_post() {
-    local sink
-    sink="$(ee_target_sink)"
+    local sinks
+    sinks="$(ee_target_sinks)"
 
     if ee_use_flatpak && ! ee_is_flatpak; then
         if [[ "$DRY_RUN" == 1 ]]; then
@@ -109,6 +108,10 @@ mod_audio_easyeffects_post() {
             warn "flatpak not available — install EasyEffects yourself: flatpak install flathub $EE_APP_ID"
         else
             info "Installing EasyEffects (flatpak)..."
+            # A --user install can only pull from a user-level remote — a
+            # system-wide flathub doesn't count ("No remote refs found").
+            flatpak remote-add --user --if-not-exists flathub \
+                https://dl.flathub.org/repo/flathub.flatpakrepo &>>"$PKG_LOG"
             if flatpak install -y --user flathub "$EE_APP_ID" &>>"$PKG_LOG"; then
                 journal flatpak "$EE_APP_ID"
                 ok "EasyEffects installed"
@@ -118,14 +121,21 @@ mod_audio_easyeffects_post() {
         fi
     fi
 
-    # The equalizer/convolver settings are captured for one specific output.
-    # On any other machine the autoload rule simply never fires, which looks
-    # like "the presets did nothing" — so say so up front.
-    if [[ -n "$sink" && "$DRY_RUN" != 1 ]]; then
-        # `grep -q` here would SIGPIPE pactl and, under pipefail, warn every
-        # time — including when the sink is present. Drain the pipe instead.
-        if command -v pactl &>/dev/null && ! pactl list short sinks 2>/dev/null | grep -F "$sink" >/dev/null; then
-            warn "This profile autoloads for the sink '$sink', which isn't on this machine — open EasyEffects and pick the preset for your own output device"
+    # The equalizer/convolver settings are captured per output device. When
+    # no autoload rule matches a sink on this machine the presets simply
+    # never fire, which looks like "the presets did nothing" — so say so.
+    if [[ -n "$sinks" && "$DRY_RUN" != 1 ]] && command -v pactl &>/dev/null; then
+        local sink matched=""
+        while IFS= read -r sink; do
+            # `grep -q` here would SIGPIPE pactl and, under pipefail, warn
+            # every time — including when the sink is present. Drain the pipe.
+            if pactl list short sinks 2>/dev/null | grep -F "$sink" >/dev/null; then
+                matched=1
+                break
+            fi
+        done <<<"$sinks"
+        if [[ -z "$matched" ]]; then
+            warn "None of this profile's autoload rules match a sink on this machine — open EasyEffects and pick the preset for your own output device"
         fi
     fi
 

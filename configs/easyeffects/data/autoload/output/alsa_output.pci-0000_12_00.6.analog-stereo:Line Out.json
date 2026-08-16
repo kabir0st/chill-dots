@@ -1,0 +1,6 @@
+{
+    "device": "alsa_output.pci-0000_12_00.6.analog-stereo",
+    "device-description": "Ryzen HD Audio Controller Analog Stereo",
+    "device-profile": "Line Out",
+    "preset-name": "Dolby-Music-Warm-Bass"
+}
